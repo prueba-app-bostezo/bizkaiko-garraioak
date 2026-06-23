@@ -330,7 +330,18 @@
       if(isNaN(lat) || isNaN(lon)) continue;
 
       var refVehiculo = textoHijo(mvj, 'VehicleRef');
+      var journeyRef = textoHijo(mvj, 'VehicleJourneyRef');
+
+      // Este feed en concreto no rellena LineRef ni PublishedLineName.
+      // El código de línea real va escondido dentro de VehicleJourneyRef,
+      // con el patrón: trp_<LINEA>_<resto>. Ejemplo real observado:
+      //   trp_A2314_687_OP40LPV2_39600_O40L2P2314_231401_7  →  línea "A2314"
       var linea = textoHijo(mvj, 'PublishedLineName') || textoHijo(mvj, 'LineRef');
+      if(!linea && journeyRef){
+        var m = journeyRef.match(/^trp_([A-Za-z]?\d+)_/);
+        if(m) linea = m[1];
+      }
+
       var destino = textoHijo(mvj, 'DestinationName');
       var direccion = textoHijo(mvj, 'DirectionName') || textoHijo(mvj, 'DirectionRef');
       var bearing = textoHijo(mvj, 'Bearing');
@@ -338,15 +349,22 @@
       var retrasoSeg = parsearDuracionISO(retrasoTxt);
       var registrado = textoHijo(act, 'RecordedAtTime');
 
+      var monitoredCall = nodoHijo(mvj, 'MonitoredCall');
+      var proximaParadaId = monitoredCall ? textoHijo(monitoredCall, 'StopPointRef') : null;
+      var estadoLlegada = monitoredCall ? textoHijo(monitoredCall, 'ArrivalStatus') : null;
+
       vehiculos.push({
         id: refVehiculo || (linea + '_' + i),
+        refVehiculo: refVehiculo,
         lat: lat, lon: lon,
         linea: linea || '—',
         destino: destino || '',
         direccion: direccion || '',
         bearing: bearing ? parseFloat(bearing) : null,
         retrasoSeg: retrasoSeg,
-        registrado: registrado
+        registrado: registrado,
+        proximaParadaId: proximaParadaId,
+        estadoLlegada: estadoLlegada
       });
     }
     return vehiculos;
@@ -414,12 +432,25 @@
         horaReg = '<p class="popup-meta">Posición registrada: ' + d.toLocaleTimeString('es-ES') + '</p>';
       }
     }
+    var proximaParadaHtml = '';
+    if(v.proximaParadaId){
+      var estados = {
+        'arrived': 'en la parada ahora',
+        'onTime': 'a tiempo',
+        'delayed': 'con retraso',
+        'early': 'adelantado',
+        'cancelled': 'cancelada'
+      };
+      var estadoTxt = v.estadoLlegada ? (estados[v.estadoLlegada] || v.estadoLlegada) : '';
+      proximaParadaHtml = '<p class="popup-meta">Próxima parada: ' + escapeHtml(v.proximaParadaId) +
+        (estadoTxt ? ' (' + escapeHtml(estadoTxt) + ')' : '') + '</p>';
+    }
     return (
       '<span class="popup-linea">' + escapeHtml(v.linea) + '</span>' +
       (v.destino ? '<p class="popup-dest">→ ' + escapeHtml(v.destino) + '</p>' : '') +
       (v.direccion ? '<p class="popup-meta">Dirección: ' + escapeHtml(v.direccion) + '</p>' : '') +
-      retrasoHtml + horaReg +
-      '<p class="popup-meta">Vehículo: ' + escapeHtml(v.id) + '</p>'
+      retrasoHtml + proximaParadaHtml + horaReg +
+      '<p class="popup-meta">Vehículo: ' + escapeHtml(v.refVehiculo || v.id) + '</p>'
     );
   }
 
