@@ -94,6 +94,23 @@
   .aviso code{background:#EFE7D8;padding:1px 5px;border-radius:4px;font-size:12px;word-break:break-all;}
   .aviso a{color:var(--naranja-osc);font-weight:600;}
 
+  /* Tamaño fijo definido por CSS (no por JS inline): MapLibre calcula el
+     punto de anclaje ("anchor: center") de un marcador HTML personalizado
+     leyendo el tamaño real del elemento en el momento de añadirlo al mapa.
+     Si ese tamaño se asigna vía JS justo antes de insertarlo en el DOM, el
+     navegador puede no haberlo "comprometido" todavía (layout no forzado),
+     y MapLibre calcula el centro mal — el marcador queda anclado a un punto
+     distinto del real, y el desajuste se hace visible al cambiar el zoom
+     porque la proyección interna usa ese anchor incorrecto como referencia.
+     Definir el tamaño aquí, en una clase ya parseada por el navegador desde
+     el primer render, evita esa condición de carrera. */
+  .icono-bus{
+    width:34px;height:34px;
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+
   .maplibregl-popup-content{
     border-radius:10px;
   }
@@ -452,18 +469,16 @@
     var rot = (typeof bearing === 'number') ? bearing : 0;
     var el = document.createElement('div');
     el.className = 'icono-bus';
-    el.style.width = '34px';
-    el.style.height = '34px';
-    el.style.position = 'relative';
-    el.style.display = 'flex';
-    el.style.alignItems = 'center';
-    el.style.justifyContent = 'center';
-    el.style.cursor = 'pointer';
+    // El SVG interno se envuelve en su propio div sin influir en el tamaño
+    // de el (el contenedor que MapLibre usa para calcular el anchor), y la
+    // rotación se aplica a ese div interno, no al contenedor del marcador.
     el.innerHTML =
-      '<svg width="34" height="34" viewBox="0 0 34 34" style="transform:rotate(' + rot + 'deg);">' +
-        '<circle cx="17" cy="17" r="15" fill="#E84E1B" stroke="#1C1B1A" stroke-width="2"/>' +
-        '<polygon points="17,4 22,12 12,12" fill="#1C1B1A"/>' +
-      '</svg>' +
+      '<div style="width:34px;height:34px;transform:rotate(' + rot + 'deg);">' +
+        '<svg width="34" height="34" viewBox="0 0 34 34">' +
+          '<circle cx="17" cy="17" r="15" fill="#E84E1B" stroke="#1C1B1A" stroke-width="2"/>' +
+          '<polygon points="17,4 22,12 12,12" fill="#1C1B1A"/>' +
+        '</svg>' +
+      '</div>' +
       '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);font-size:9px;font-weight:800;color:#F6F2EA;pointer-events:none;">' +
         (linea||'').replace(/^A/,'') +
       '</span>';
