@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bizkaibus en directo</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.7.3/maplibre-gl.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.7.3/maplibre-gl.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <style>
   :root{
     --naranja: #E84E1B;
@@ -94,24 +94,7 @@
   .aviso code{background:#EFE7D8;padding:1px 5px;border-radius:4px;font-size:12px;word-break:break-all;}
   .aviso a{color:var(--naranja-osc);font-weight:600;}
 
-  /* Tamaño fijo definido por CSS (no por JS inline): MapLibre calcula el
-     punto de anclaje ("anchor: center") de un marcador HTML personalizado
-     leyendo el tamaño real del elemento en el momento de añadirlo al mapa.
-     Si ese tamaño se asigna vía JS justo antes de insertarlo en el DOM, el
-     navegador puede no haberlo "comprometido" todavía (layout no forzado),
-     y MapLibre calcula el centro mal — el marcador queda anclado a un punto
-     distinto del real, y el desajuste se hace visible al cambiar el zoom
-     porque la proyección interna usa ese anchor incorrecto como referencia.
-     Definir el tamaño aquí, en una clase ya parseada por el navegador desde
-     el primer render, evita esa condición de carrera. */
-  .icono-bus{
-    width:34px;height:34px;
-    position:relative;
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
-  }
-
-  .maplibregl-popup-content{
+  .leaflet-popup-content-wrapper{
     border-radius:10px;
   }
   .popup-linea{
@@ -168,7 +151,7 @@
 
   <footer>
     <span id="fuenteTexto">Fuente: SIRI Vehicle Monitoring — Consorcio de Transportes de Bizkaia (data.ctb.eus)</span>
-    <span>Mapa © OpenStreetMap</span>
+    <span>Mapa © OpenStreetMap, Leaflet</span>
   </footer>
 </div>
 
@@ -176,61 +159,21 @@
 (function(){
   var URL_FEED = "https://bizkaibus.cuentasmurf7.workers.dev";
   var URL_RUTAS = "feeds/rutas_simple.json";
-  var CENTRO = [43.2630, -2.9350]; // [lat, lon] — se convierte a [lon, lat] al usarlo en MapLibre
+  var CENTRO = [43.2630, -2.9350];
 
-  var map, marcadores = {}; // marcadores: id -> maplibregl.Marker
+  var map, capaBuses, marcadores = {};
   var intervaloId = null;
   var rutasCache = null;      // null = no cargado, {} = cargado
-  var idCapaRuta = 'ruta-actual';
-  var idFuenteRuta = 'fuente-ruta-actual';
+  var rutaActual = null;      // polyline actualmente dibujada
 
   function init(){
-    map = new maplibregl.Map({
-      container: 'map',
-      style: {
-        version: 8,
-        // Proyección plana clásica (Mercator), fijada de forma EXPLÍCITA.
-        // MapLibre 5.x puede entrar en modo "globe" (esférico) según el
-        // estilo o el zoom si no se especifica, y los Marker HTML tienen
-        // un bug conocido en esa proyección: la longitud puede quedar
-        // desplazada en múltiplos de 360° (changelog 5.4.0, issue #5473).
-        // Como este mapa es siempre de ámbito local (Bizkaia), no necesita
-        // proyección de globo en ningún momento — mercator es lo correcto.
-        projection: { type: 'mercator' },
-        sources: {
-          'osm': {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            // Atribución obligatoria por los términos de uso de OpenStreetMap.
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          }
-        },
-        layers: [
-          { id: 'osm', type: 'raster', source: 'osm', maxzoom: 19 }
-        ]
-      },
-      center: [CENTRO[1], CENTRO[0]], // MapLibre usa [lon, lat]
-      zoom: 11,
-      // Este mapa es siempre de ámbito local (Bizkaia); no tiene sentido
-      // renderizar copias repetidas del planeta a otras longitudes, y
-      // desactivarlo evita cualquier ambigüedad de "qué copia de la
-      // longitud" usar al colocar un marcador.
-      renderWorldCopies: false
-    });
-    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map = L.map('map', {zoomControl:true}).setView(CENTRO, 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-    // --- LÍNEA TEMPORAL DE DEPURACIÓN, quitar una vez resuelto el bug ---
-    window.__debugMap = map;
-    window.__debugVehiculos = function(){ return cacheVehiculos; };
-    // ---------------------------------------------------------------------
-
-    // (Se eliminó un forzado de map.resize() en ResizeObserver/window.resize
-    // que se había añadido para un problema de tamaño de contenedor ya
-    // descartado — getBoundingClientRect() confirmó que #map mide 1365x827,
-    // igual que el canvas, así que ese resize no resolvía nada real y se
-    // sospecha que interfería con el cálculo de proyección durante el
-    // propio gesto de zoom, produciendo el desplazamiento de marcadores.)
+    capaBuses = L.layerGroup().addTo(map);
 
     // Cerrar ruta al hacer clic en el mapa (fuera de un marcador)
     map.on('click', borrarRuta);
@@ -242,10 +185,8 @@
     // Precargar rutas en segundo plano
     cargarRutas();
 
-    map.on('load', function(){
-      cargar();
-      reiniciarTemporizador();
-    });
+    cargar();
+    reiniciarTemporizador();
   }
 
   // ------------------------------------------------------------------
@@ -266,36 +207,20 @@
     var coords = rutasCache[linea] || rutasCache[linea.replace(/^A/,'')];
     if(!coords || coords.length < 2) return;
 
-    // rutas_simple.json guarda cada punto como [lat, lon]; GeoJSON (y por
-    // tanto MapLibre) espera [lon, lat], así que se invierte cada par aquí
-    // sin tocar el archivo original.
-    var coordsGeoJSON = coords.map(function(par){ return [par[1], par[0]]; });
-
-    map.addSource(idFuenteRuta, {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: coordsGeoJSON }
-      }
-    });
-    map.addLayer({
-      id: idCapaRuta,
-      type: 'line',
-      source: idFuenteRuta,
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': '#2E7D4F',
-        'line-width': 4,
-        'line-opacity': 0.85
-      }
-    });
+    rutaActual = L.polyline(coords, {
+      color: '#2E7D4F',
+      weight: 4,
+      opacity: 0.85,
+      lineJoin: 'round'
+    }).addTo(map);
   }
 
   function borrarRuta(){
-    if(map.getLayer(idCapaRuta)) map.removeLayer(idCapaRuta);
-    if(map.getSource(idFuenteRuta)) map.removeSource(idFuenteRuta);
+    if(rutaActual){
+      map.removeLayer(rutaActual);
+      rutaActual = null;
+    }
   }
-
 
   // ------------------------------------------------------------------
   // TEMPORIZADOR Y ESTADO
@@ -462,29 +387,28 @@
   // ------------------------------------------------------------------
   // PINTADO EN EL MAPA
   // ------------------------------------------------------------------
-  function crearElementoBus(linea, bearing){
+  function iconoBus(linea, bearing){
     var rot = (typeof bearing === 'number') ? bearing : 0;
-    var el = document.createElement('div');
-    el.className = 'icono-bus';
-    // El SVG interno se envuelve en su propio div sin influir en el tamaño
-    // de el (el contenedor que MapLibre usa para calcular el anchor), y la
-    // rotación se aplica a ese div interno, no al contenedor del marcador.
-    el.innerHTML =
-      '<div style="width:34px;height:34px;transform:rotate(' + rot + 'deg);">' +
-        '<svg width="34" height="34" viewBox="0 0 34 34">' +
-          '<circle cx="17" cy="17" r="15" fill="#E84E1B" stroke="#1C1B1A" stroke-width="2"/>' +
-          '<polygon points="17,4 22,12 12,12" fill="#1C1B1A"/>' +
-        '</svg>' +
-      '</div>' +
-      '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);font-size:9px;font-weight:800;color:#F6F2EA;pointer-events:none;">' +
-        (linea||'').replace(/^A/,'') +
-      '</span>';
-    return el;
+    return L.divIcon({
+      className: 'icono-bus',
+      html:
+        '<div style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">' +
+          '<svg width="34" height="34" viewBox="0 0 34 34" style="transform:rotate(' + rot + 'deg);">' +
+            '<circle cx="17" cy="17" r="15" fill="#E84E1B" stroke="#1C1B1A" stroke-width="2"/>' +
+            '<polygon points="17,4 22,12 12,12" fill="#1C1B1A"/>' +
+          '</svg>' +
+          '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);font-size:9px;font-weight:800;color:#F6F2EA;pointer-events:none;">' +
+            (linea||'').replace(/^A/,'') +
+          '</span>' +
+        '</div>',
+      iconSize: [34,34],
+      iconAnchor: [17,17]
+    });
   }
 
   function pintarDesdeCache(){
     var filtro = document.getElementById('filtroLinea').value.trim().toUpperCase();
-    Object.keys(marcadores).forEach(function(id){ marcadores[id].remove(); });
+    capaBuses.clearLayers();
     marcadores = {};
 
     var visibles = cacheVehiculos.filter(function(v){
@@ -493,22 +417,18 @@
     });
 
     visibles.forEach(function(v){
-      var el = crearElementoBus(v.linea, v.bearing);
-      var popup = new maplibregl.Popup({ offset: 20 }).setHTML(construirPopup(v));
-      var marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([v.lon, v.lat])
-        .setPopup(popup)
-        .addTo(map);
-      el.addEventListener('click', function(){
+      var marker = L.marker([v.lat, v.lon], {icon: iconoBus(v.linea, v.bearing)});
+      marker.bindPopup(construirPopup(v));
+      marker.on('click', function(){
         mostrarRuta(v.linea);
       });
+      marker.addTo(capaBuses);
       marcadores[v.id] = marker;
     });
 
     document.getElementById('contadorBuses').textContent =
       visibles.length + (filtro ? ' / ' + cacheVehiculos.length : '') + ' autobuses';
   }
-
 
   function construirPopup(v){
     var retrasoHtml = '';
