@@ -4,131 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bizkaibus en directo</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.7.3/maplibre-gl.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.7.3/maplibre-gl.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <style>
   :root{
-    --naranja: #E84E1B;
-    --naranja-osc: #C23E12;
-    --tinta: #1C1B1A;
-    --hueso: #F6F2EA;
-    --gris: #6B6660;
-    --linea: #DCD5C8;
-    --verde-ok: #2E7D4F;
-    --rojo-err: #B3261E;
+    --naranja:#E84E1B;--naranja-osc:#C23E12;--tinta:#1C1B1A;
+    --hueso:#F6F2EA;--gris:#6B6660;--linea:#DCD5C8;
+    --verde-ok:#2E7D4F;--rojo-err:#B3261E;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;font-family:'Helvetica Neue',Arial,sans-serif;background:var(--hueso);color:var(--tinta);}
-
   #app{display:flex;flex-direction:column;height:100%;}
-
-  header{
-    display:flex;align-items:center;gap:14px;
-    padding:14px 18px;
-    background:var(--tinta);
-    color:var(--hueso);
-    border-bottom:4px solid var(--naranja);
-    flex-wrap:wrap;
-  }
+  header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--tinta);color:var(--hueso);border-bottom:4px solid var(--naranja);flex-wrap:wrap;}
   .brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;}
-  .brand .mark{
-    font-weight:800;font-size:20px;letter-spacing:.5px;
-    color:var(--naranja);
-  }
+  .brand .mark{font-weight:800;font-size:20px;letter-spacing:.5px;color:var(--naranja);}
   .brand .sub{font-size:12px;color:#C9C4BC;font-weight:400;}
-
-  .status{
-    font-size:12px;display:flex;align-items:center;gap:6px;
-    padding:5px 10px;border-radius:20px;background:#2A2826;
-  }
+  .status{font-size:12px;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;background:#2A2826;}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--gris);transition:background .2s;}
-  .status.ok .dot{background:var(--verde-ok);box-shadow:0 0 0 0 rgba(46,125,79,.6);animation:pulse 2s infinite;}
+  .status.ok .dot{background:var(--verde-ok);animation:pulse 2s infinite;}
   .status.err .dot{background:var(--rojo-err);}
   .status.loading .dot{background:#E8B23D;}
-  @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(46,125,79,.5);}
-    70%{box-shadow:0 0 0 6px rgba(46,125,79,0);}
-    100%{box-shadow:0 0 0 0 rgba(46,125,79,0);}
-  }
-
-  .controls{
-    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  }
-  .controls input[type="text"]{
-    padding:7px 10px;border-radius:6px;border:1px solid #3a3835;
-    background:#2A2826;color:var(--hueso);font-size:13px;width:120px;
-  }
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,125,79,.5);}70%{box-shadow:0 0 0 6px rgba(46,125,79,0);}100%{box-shadow:0 0 0 0 rgba(46,125,79,0);}}
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .controls input[type="text"]{padding:7px 10px;border-radius:6px;border:1px solid #3a3835;background:#2A2826;color:var(--hueso);font-size:13px;width:120px;}
   .controls input[type="text"]::placeholder{color:#8a857d;}
-  .controls select{
-    padding:7px 8px;border-radius:6px;border:1px solid #3a3835;
-    background:#2A2826;color:var(--hueso);font-size:13px;
-  }
-  .btn-refrescar{
-    border:1px solid var(--naranja);background:transparent;color:var(--naranja);
-    padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;
-    transition:background .15s,color .15s;
-  }
+  .controls select{padding:7px 8px;border-radius:6px;border:1px solid #3a3835;background:#2A2826;color:var(--hueso);font-size:13px;}
+  .btn-refrescar{border:1px solid var(--naranja);background:transparent;color:var(--naranja);padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .15s,color .15s;}
   .btn-refrescar:hover{background:var(--naranja);color:var(--tinta);}
-
   main{position:relative;flex:1;min-height:0;}
   #map{position:absolute;inset:0;}
-
-  .leyenda{
-    position:absolute;bottom:16px;left:16px;z-index:500;
-    background:rgba(28,27,26,0.92);color:var(--hueso);
-    padding:10px 14px;border-radius:8px;font-size:12px;
-    display:flex;flex-direction:column;gap:4px;
-    box-shadow:0 4px 14px rgba(0,0,0,.25);
-  }
+  .leyenda{position:absolute;bottom:16px;left:16px;z-index:500;background:rgba(28,27,26,0.92);color:var(--hueso);padding:10px 14px;border-radius:8px;font-size:12px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 14px rgba(0,0,0,.25);}
   .leyenda b{color:var(--naranja);font-size:13px;}
-
-  .aviso{
-    position:absolute;top:16px;left:50%;transform:translateX(-50%);
-    z-index:600;max-width:560px;width:calc(100% - 32px);
-    background:#FFF7EC;border:1px solid var(--naranja);
-    border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.5;
-    box-shadow:0 8px 22px rgba(0,0,0,.18);display:none;
-  }
+  .aviso{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:600;max-width:560px;width:calc(100% - 32px);background:#FFF7EC;border:1px solid var(--naranja);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.5;box-shadow:0 8px 22px rgba(0,0,0,.18);display:none;}
   .aviso.show{display:block;}
   .aviso h3{margin:0 0 6px;font-size:14px;color:var(--naranja-osc);}
-  .aviso code{background:#EFE7D8;padding:1px 5px;border-radius:4px;font-size:12px;word-break:break-all;}
-  .aviso a{color:var(--naranja-osc);font-weight:600;}
-
-  /* Tamaño fijo definido por CSS (no por JS inline): MapLibre calcula el
-     punto de anclaje ("anchor: center") de un marcador HTML personalizado
-     leyendo el tamaño real del elemento en el momento de añadirlo al mapa.
-     Si ese tamaño se asigna vía JS justo antes de insertarlo en el DOM, el
-     navegador puede no haberlo "comprometido" todavía (layout no forzado),
-     y MapLibre calcula el centro mal — el marcador queda anclado a un punto
-     distinto del real, y el desajuste se hace visible al cambiar el zoom
-     porque la proyección interna usa ese anchor incorrecto como referencia.
-     Definir el tamaño aquí, en una clase ya parseada por el navegador desde
-     el primer render, evita esa condición de carrera. */
-  .icono-bus{
-    width:34px;height:34px;
-    position:relative;
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;
-  }
-
-  .maplibregl-popup-content{
-    border-radius:10px;
-  }
-  .popup-linea{
-    display:inline-block;background:var(--naranja);color:white;
-    font-weight:800;font-size:14px;padding:2px 8px;border-radius:5px;margin-bottom:6px;
-  }
+  .leaflet-popup-content-wrapper{border-radius:10px;}
+  .popup-linea{display:inline-block;background:var(--naranja);color:white;font-weight:800;font-size:14px;padding:2px 8px;border-radius:5px;margin-bottom:6px;}
   .popup-dest{font-weight:600;font-size:13px;margin:0 0 4px;}
   .popup-meta{font-size:12px;color:var(--gris);margin:2px 0;}
   .popup-retraso-tarde{color:var(--rojo-err);font-weight:600;}
   .popup-retraso-pronto{color:var(--verde-ok);font-weight:600;}
-
-  footer{
-    padding:7px 16px;font-size:11px;color:var(--gris);
-    background:var(--hueso);border-top:1px solid var(--linea);
-    display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;
-  }
-  footer a{color:var(--gris);}
+  footer{padding:7px 16px;font-size:11px;color:var(--gris);background:var(--hueso);border-top:1px solid var(--linea);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
 </style>
 </head>
 <body>
@@ -153,7 +69,6 @@
       <span id="statusTexto">Conectando…</span>
     </div>
   </header>
-
   <main>
     <div id="map"></div>
     <div class="leyenda">
@@ -165,87 +80,45 @@
       <div id="avisoTexto"></div>
     </div>
   </main>
-
   <footer>
-    <span id="fuenteTexto">Fuente: SIRI Vehicle Monitoring — Consorcio de Transportes de Bizkaia (data.ctb.eus)</span>
-    <span>Mapa © OpenStreetMap</span>
+    <span id="fuenteTexto">Fuente: SIRI Vehicle Monitoring — Consorcio de Transportes de Bizkaia</span>
+    <span>Mapa © OpenStreetMap, Leaflet</span>
   </footer>
 </div>
 
 <script>
 (function(){
-  var URL_FEED = "https://bizkaibus.cuentasmurf7.workers.dev";
+  var URL_FEED  = "https://bizkaibus.cuentasmurf7.workers.dev";
   var URL_RUTAS = "feeds/rutas_simple.json";
-  var CENTRO = [43.2630, -2.9350]; // [lat, lon] — se convierte a [lon, lat] al usarlo en MapLibre
+  var CENTRO    = [43.2630, -2.9350];
 
-  var map, marcadores = {}; // marcadores: id -> maplibregl.Marker
-  var intervaloId = null;
-  var rutasCache = null;      // null = no cargado, {} = cargado
-  var idCapaRuta = 'ruta-actual';
-  var idFuenteRuta = 'fuente-ruta-actual';
+  var map, capaBuses;
+  var intervaloId  = null;
+  var rutasCache   = null;
+  var rutaActual   = null;
+  var cacheVehiculos = [];
 
+  // ------------------------------------------------------------------
   function init(){
-    map = new maplibregl.Map({
-      container: 'map',
-      style: {
-        version: 8,
-        // Proyección plana clásica (Mercator), fijada de forma EXPLÍCITA.
-        // MapLibre 5.x puede entrar en modo "globe" (esférico) según el
-        // estilo o el zoom si no se especifica, y los Marker HTML tienen
-        // un bug conocido en esa proyección: la longitud puede quedar
-        // desplazada en múltiplos de 360° (changelog 5.4.0, issue #5473).
-        // Como este mapa es siempre de ámbito local (Bizkaia), no necesita
-        // proyección de globo en ningún momento — mercator es lo correcto.
-        projection: { type: 'mercator' },
-        sources: {
-          'osm': {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            // Atribución obligatoria por los términos de uso de OpenStreetMap.
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          }
-        },
-        layers: [
-          { id: 'osm', type: 'raster', source: 'osm', maxzoom: 19 }
-        ]
-      },
-      center: [CENTRO[1], CENTRO[0]], // MapLibre usa [lon, lat]
-      zoom: 11,
-      // Este mapa es siempre de ámbito local (Bizkaia); no tiene sentido
-      // renderizar copias repetidas del planeta a otras longitudes, y
-      // desactivarlo evita cualquier ambigüedad de "qué copia de la
-      // longitud" usar al colocar un marcador.
-      renderWorldCopies: false
+    map = L.map('map', {zoomControl:true}).setView(CENTRO, 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    capaBuses = L.layerGroup().addTo(map);
+
+    map.on('click', function(e){
+      // Borrar ruta al clicar en el mapa fuera de un marcador
+      if(!e.originalEvent._marcadorClick) borrarRuta();
     });
-    map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    // --- LÍNEA TEMPORAL DE DEPURACIÓN, quitar una vez resuelto el bug ---
-    window.__debugMap = map;
-    window.__debugVehiculos = function(){ return cacheVehiculos; };
-    // ---------------------------------------------------------------------
-
-    // (Se eliminó un forzado de map.resize() en ResizeObserver/window.resize
-    // que se había añadido para un problema de tamaño de contenedor ya
-    // descartado — getBoundingClientRect() confirmó que #map mide 1365x827,
-    // igual que el canvas, así que ese resize no resolvía nada real y se
-    // sospecha que interfería con el cálculo de proyección durante el
-    // propio gesto de zoom, produciendo el desplazamiento de marcadores.)
-
-    // Cerrar ruta al hacer clic en el mapa (fuera de un marcador)
-    map.on('click', borrarRuta);
 
     document.getElementById('btnRefrescar').addEventListener('click', cargar);
     document.getElementById('filtroLinea').addEventListener('input', pintarDesdeCache);
     document.getElementById('intervalo').addEventListener('change', reiniciarTemporizador);
 
-    // Precargar rutas en segundo plano
     cargarRutas();
-
-    map.on('load', function(){
-      cargar();
-      reiniciarTemporizador();
-    });
+    cargar();
+    reiniciarTemporizador();
   }
 
   // ------------------------------------------------------------------
@@ -254,51 +127,27 @@
   function cargarRutas(){
     fetch(URL_RUTAS)
       .then(function(r){ return r.json(); })
-      .then(function(data){ rutasCache = data; })
-      .catch(function(){ rutasCache = {}; }); // fallo silencioso
+      .then(function(d){ rutasCache = d; })
+      .catch(function(){ rutasCache = {}; });
   }
 
   function mostrarRuta(linea){
     borrarRuta();
     if(!rutasCache || !linea) return;
-
-    // Intentar con el código tal cual (ej. "A3136") y sin la A inicial (ej. "3136")
     var coords = rutasCache[linea] || rutasCache[linea.replace(/^A/,'')];
     if(!coords || coords.length < 2) return;
-
-    // rutas_simple.json guarda cada punto como [lat, lon]; GeoJSON (y por
-    // tanto MapLibre) espera [lon, lat], así que se invierte cada par aquí
-    // sin tocar el archivo original.
-    var coordsGeoJSON = coords.map(function(par){ return [par[1], par[0]]; });
-
-    map.addSource(idFuenteRuta, {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: coordsGeoJSON }
-      }
-    });
-    map.addLayer({
-      id: idCapaRuta,
-      type: 'line',
-      source: idFuenteRuta,
-      layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: {
-        'line-color': '#2E7D4F',
-        'line-width': 4,
-        'line-opacity': 0.85
-      }
-    });
+    // rutas_simple.json: [[lat,lon],...] — Leaflet usa [lat,lon], perfecto
+    rutaActual = L.polyline(coords,{
+      color:'#2E7D4F', weight:4, opacity:0.85, lineJoin:'round'
+    }).addTo(map);
   }
 
   function borrarRuta(){
-    if(map.getLayer(idCapaRuta)) map.removeLayer(idCapaRuta);
-    if(map.getSource(idFuenteRuta)) map.removeSource(idFuenteRuta);
+    if(rutaActual){ map.removeLayer(rutaActual); rutaActual = null; }
   }
 
-
   // ------------------------------------------------------------------
-  // TEMPORIZADOR Y ESTADO
+  // TEMPORIZADOR
   // ------------------------------------------------------------------
   function reiniciarTemporizador(){
     if(intervaloId) clearInterval(intervaloId);
@@ -306,254 +155,181 @@
     intervaloId = setInterval(cargar, ms);
   }
 
-  var cacheVehiculos = [];
-
+  // ------------------------------------------------------------------
+  // ESTADO
+  // ------------------------------------------------------------------
   function setStatus(estado, texto){
-    var el = document.getElementById('status');
-    el.className = 'status ' + estado;
+    document.getElementById('status').className = 'status ' + estado;
     document.getElementById('statusTexto').textContent = texto;
   }
-
   function mostrarAviso(html){
-    var aviso = document.getElementById('aviso');
     document.getElementById('avisoTexto').innerHTML = html;
-    aviso.classList.add('show');
+    document.getElementById('aviso').classList.add('show');
   }
   function ocultarAviso(){
     document.getElementById('aviso').classList.remove('show');
   }
 
   // ------------------------------------------------------------------
-  // CARGA Y PARSEO DEL XML SIRI
+  // CARGA FEED
   // ------------------------------------------------------------------
   function cargar(){
-    setStatus('loading', 'Actualizando…');
-    document.getElementById('fuenteTexto').textContent =
-      'Fuente: Cloudflare Worker → SIRI Vehicle Monitoring (Consorcio de Transportes de Bizkaia)';
-    var urlConCache = URL_FEED + '?_=' + Date.now();
-
-    fetch(urlConCache, {cache:'no-store'})
-      .then(function(resp){
-        if(!resp.ok) throw new Error('HTTP ' + resp.status);
-        return resp.text();
-      })
-      .then(function(texto){
-        var vehiculos = parsearSiriVM(texto);
-        cacheVehiculos = vehiculos;
+    setStatus('loading','Actualizando…');
+    fetch(URL_FEED + '?_=' + Date.now(), {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+      .then(function(txt){
+        cacheVehiculos = parsearSiriVM(txt);
         pintarDesdeCache();
         ocultarAviso();
-        setStatus('ok', vehiculos.length + ' autobuses · ' + horaActual());
-        document.getElementById('ultimaActualizacion').textContent =
-          'última lectura: ' + horaActual();
+        setStatus('ok', cacheVehiculos.length + ' autobuses · ' + horaActual());
+        document.getElementById('ultimaActualizacion').textContent = 'última lectura: ' + horaActual();
       })
       .catch(function(err){
         console.error(err);
-        setStatus('err', 'Sin datos');
-        explicarError(err);
+        setStatus('err','Sin datos');
+        mostrarAviso('No se ha podido leer el feed.<br><br>Detalle: ' + esc(err.message));
       });
   }
 
   function horaActual(){
-    var d = new Date();
-    return d.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    return new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }
 
-  function explicarError(err){
-    mostrarAviso(
-      'No se ha podido leer el feed.<br><br>' +
-      'Detalle técnico: ' + escapeHtml(err.message)
-    );
-  }
-
+  // ------------------------------------------------------------------
+  // PARSEO XML SIRI
+  // ------------------------------------------------------------------
   function porLocalName(nodo, nombre){
-    var todos = nodo.getElementsByTagName('*');
-    var out = [];
-    for(var i=0;i<todos.length;i++){
-      if(todos[i].localName === nombre) out.push(todos[i]);
-    }
+    var todos = nodo.getElementsByTagName('*'), out = [];
+    for(var i=0;i<todos.length;i++) if(todos[i].localName===nombre) out.push(todos[i]);
     return out;
   }
   function textoHijo(nodo, nombre){
     if(!nodo) return null;
-    var hijos = nodo.children;
-    for(var i=0;i<hijos.length;i++){
-      if(hijos[i].localName === nombre) return hijos[i].textContent.trim();
-    }
+    for(var i=0;i<nodo.children.length;i++)
+      if(nodo.children[i].localName===nombre) return nodo.children[i].textContent.trim();
     return null;
   }
   function nodoHijo(nodo, nombre){
     if(!nodo) return null;
-    var hijos = nodo.children;
-    for(var i=0;i<hijos.length;i++){
-      if(hijos[i].localName === nombre) return hijos[i];
-    }
+    for(var i=0;i<nodo.children.length;i++)
+      if(nodo.children[i].localName===nombre) return nodo.children[i];
     return null;
   }
-
-  function parsearDuracionISO(s){
+  function parsearDuracion(s){
     if(!s) return null;
-    var neg = s.indexOf('-') === 0;
+    var neg = s[0]==='-';
     var m = s.replace('-','').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?/);
     if(!m) return null;
-    var h = parseFloat(m[1]||0), mi = parseFloat(m[2]||0), se = parseFloat(m[3]||0);
-    var total = h*3600 + mi*60 + se;
-    return neg ? -total : total;
+    var t = (parseFloat(m[1]||0)*3600)+(parseFloat(m[2]||0)*60)+parseFloat(m[3]||0);
+    return neg ? -t : t;
   }
 
   function parsearSiriVM(xmlTexto){
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(xmlTexto, 'application/xml');
-
-    var errorParse = doc.getElementsByTagName('parsererror');
-    if(errorParse.length){
-      throw new Error('El XML recibido no se pudo interpretar (parsererror).');
-    }
-
-    var actividades = porLocalName(doc, 'VehicleActivity');
-    var vehiculos = [];
-
+    var doc = new DOMParser().parseFromString(xmlTexto,'application/xml');
+    if(doc.getElementsByTagName('parsererror').length)
+      throw new Error('XML inválido');
+    var actividades = porLocalName(doc,'VehicleActivity');
+    var out = [];
     for(var i=0;i<actividades.length;i++){
       var act = actividades[i];
-      var mvj = nodoHijo(act, 'MonitoredVehicleJourney');
+      var mvj = nodoHijo(act,'MonitoredVehicleJourney');
       if(!mvj) continue;
+      var ub  = nodoHijo(mvj,'VehicleLocation');
+      var lat = ub ? parseFloat(textoHijo(ub,'Latitude'))  : NaN;
+      var lon = ub ? parseFloat(textoHijo(ub,'Longitude')) : NaN;
+      if(isNaN(lat)||isNaN(lon)) continue;
 
-      var ubicacion = nodoHijo(mvj, 'VehicleLocation');
-      var lat = ubicacion ? parseFloat(textoHijo(ubicacion, 'Latitude')) : NaN;
-      var lon = ubicacion ? parseFloat(textoHijo(ubicacion, 'Longitude')) : NaN;
-      if(isNaN(lat) || isNaN(lon)) continue;
-
-      var refVehiculo = textoHijo(mvj, 'VehicleRef');
-      var journeyRef = textoHijo(mvj, 'VehicleJourneyRef');
-
-      var linea = textoHijo(mvj, 'PublishedLineName') || textoHijo(mvj, 'LineRef');
-      if(!linea && journeyRef){
-        var m = journeyRef.match(/^trp_([A-Za-z]?\d+)_/);
-        if(m) linea = m[1];
-      }
-
-      var destino = textoHijo(mvj, 'DestinationName');
-      var direccion = textoHijo(mvj, 'DirectionName') || textoHijo(mvj, 'DirectionRef');
-      var bearing = textoHijo(mvj, 'Bearing');
-      var retrasoTxt = textoHijo(mvj, 'Delay');
-      var retrasoSeg = parsearDuracionISO(retrasoTxt);
-      var registrado = textoHijo(act, 'RecordedAtTime');
-
-      var monitoredCall = nodoHijo(mvj, 'MonitoredCall');
-      var proximaParadaId = monitoredCall ? textoHijo(monitoredCall, 'StopPointRef') : null;
-      var estadoLlegada = monitoredCall ? textoHijo(monitoredCall, 'ArrivalStatus') : null;
-
-      vehiculos.push({
-        id: refVehiculo || (linea + '_' + i),
-        refVehiculo: refVehiculo,
-        lat: lat, lon: lon,
-        linea: linea || '—',
-        destino: destino || '',
-        direccion: direccion || '',
-        bearing: bearing ? parseFloat(bearing) : null,
-        retrasoSeg: retrasoSeg,
-        registrado: registrado,
-        proximaParadaId: proximaParadaId,
-        estadoLlegada: estadoLlegada
+      var refV   = textoHijo(mvj,'VehicleRef');
+      var jRef   = textoHijo(mvj,'VehicleJourneyRef');
+      var linea  = textoHijo(mvj,'PublishedLineName') || textoHijo(mvj,'LineRef');
+      if(!linea && jRef){ var mr=jRef.match(/^trp_([A-Za-z]?\d+)_/); if(mr) linea=mr[1]; }
+      var mc    = nodoHijo(mvj,'MonitoredCall');
+      out.push({
+        id:            refV || (linea+'_'+i),
+        refVehiculo:   refV,
+        lat:lat, lon:lon,
+        linea:         linea||'—',
+        destino:       textoHijo(mvj,'DestinationName')||'',
+        direccion:     textoHijo(mvj,'DirectionName')||textoHijo(mvj,'DirectionRef')||'',
+        bearing:       textoHijo(mvj,'Bearing') ? parseFloat(textoHijo(mvj,'Bearing')) : null,
+        retrasoSeg:    parsearDuracion(textoHijo(mvj,'Delay')),
+        registrado:    textoHijo(act,'RecordedAtTime'),
+        paradaId:      mc ? textoHijo(mc,'StopPointRef') : null,
+        estadoLlegada: mc ? textoHijo(mc,'ArrivalStatus') : null
       });
     }
-    return vehiculos;
+    return out;
   }
 
   // ------------------------------------------------------------------
-  // PINTADO EN EL MAPA
+  // PINTADO
   // ------------------------------------------------------------------
-  function crearElementoBus(linea, bearing){
-    var rot = (typeof bearing === 'number') ? bearing : 0;
-    var el = document.createElement('div');
-    el.className = 'icono-bus';
-    // El SVG interno se envuelve en su propio div sin influir en el tamaño
-    // de el (el contenedor que MapLibre usa para calcular el anchor), y la
-    // rotación se aplica a ese div interno, no al contenedor del marcador.
-    el.innerHTML =
-      '<div style="width:34px;height:34px;transform:rotate(' + rot + 'deg);">' +
-        '<svg width="34" height="34" viewBox="0 0 34 34">' +
-          '<circle cx="17" cy="17" r="15" fill="#E84E1B" stroke="#1C1B1A" stroke-width="2"/>' +
-          '<polygon points="17,4 22,12 12,12" fill="#1C1B1A"/>' +
-        '</svg>' +
-      '</div>' +
-      '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);font-size:9px;font-weight:800;color:#F6F2EA;pointer-events:none;">' +
-        (linea||'').replace(/^A/,'') +
-      '</span>';
-    return el;
+  function iconoBus(linea, bearing){
+    var rot = typeof bearing==='number' ? bearing : 0;
+    var num = (linea||'').replace(/^A/,'');
+    return L.divIcon({
+      className:'',
+      html:
+        '<div style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">' +
+          '<svg width="34" height="34" viewBox="0 0 34 34" style="transform:rotate('+rot+'deg);position:absolute;top:0;left:0;">' +
+            '<circle cx="17" cy="17" r="15" fill="#E84E1B" stroke="#1C1B1A" stroke-width="2"/>' +
+            '<polygon points="17,4 22,12 12,12" fill="#1C1B1A"/>' +
+          '</svg>' +
+          '<span style="position:relative;z-index:1;font-size:9px;font-weight:800;color:#F6F2EA;pointer-events:none;line-height:1;">'+num+'</span>'+
+        '</div>',
+      iconSize:[34,34],
+      iconAnchor:[17,17],
+      popupAnchor:[0,-17]
+    });
   }
 
   function pintarDesdeCache(){
     var filtro = document.getElementById('filtroLinea').value.trim().toUpperCase();
-    Object.keys(marcadores).forEach(function(id){ marcadores[id].remove(); });
-    marcadores = {};
+    capaBuses.clearLayers();
 
     var visibles = cacheVehiculos.filter(function(v){
-      if(!filtro) return true;
-      return (v.linea||'').toUpperCase().indexOf(filtro) >= 0;
+      return !filtro || (v.linea||'').toUpperCase().indexOf(filtro)>=0;
     });
 
     visibles.forEach(function(v){
-      var el = crearElementoBus(v.linea, v.bearing);
-      var popup = new maplibregl.Popup({ offset: 20 }).setHTML(construirPopup(v));
-      var marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([v.lon, v.lat])
-        .setPopup(popup)
-        .addTo(map);
-      el.addEventListener('click', function(){
+      var marker = L.marker([v.lat, v.lon], {icon: iconoBus(v.linea, v.bearing)});
+      marker.bindPopup(construirPopup(v));
+      marker.on('click', function(e){
+        e.originalEvent._marcadorClick = true;
         mostrarRuta(v.linea);
       });
-      marcadores[v.id] = marker;
+      marker.addTo(capaBuses);
     });
 
     document.getElementById('contadorBuses').textContent =
-      visibles.length + (filtro ? ' / ' + cacheVehiculos.length : '') + ' autobuses';
+      visibles.length + (filtro ? ' / '+cacheVehiculos.length : '') + ' autobuses';
   }
-
 
   function construirPopup(v){
-    var retrasoHtml = '';
-    if(typeof v.retrasoSeg === 'number'){
-      var min = Math.round(v.retrasoSeg / 60);
-      if(min > 0){
-        retrasoHtml = '<p class="popup-meta popup-retraso-tarde">Retraso: ' + min + ' min</p>';
-      } else if(min < 0){
-        retrasoHtml = '<p class="popup-meta popup-retraso-pronto">Adelanto: ' + Math.abs(min) + ' min</p>';
-      } else {
-        retrasoHtml = '<p class="popup-meta">En hora</p>';
-      }
+    var rHtml = '';
+    if(typeof v.retrasoSeg==='number'){
+      var min = Math.round(v.retrasoSeg/60);
+      if(min>0)       rHtml='<p class="popup-meta popup-retraso-tarde">Retraso: '+min+' min</p>';
+      else if(min<0)  rHtml='<p class="popup-meta popup-retraso-pronto">Adelanto: '+Math.abs(min)+' min</p>';
+      else            rHtml='<p class="popup-meta">En hora</p>';
     }
-    var horaReg = '';
-    if(v.registrado){
-      var d = new Date(v.registrado);
-      if(!isNaN(d.getTime())){
-        horaReg = '<p class="popup-meta">Posición registrada: ' + d.toLocaleTimeString('es-ES') + '</p>';
-      }
+    var hReg = '';
+    if(v.registrado){ var d=new Date(v.registrado); if(!isNaN(d)) hReg='<p class="popup-meta">Posición: '+d.toLocaleTimeString('es-ES')+'</p>'; }
+    var pHtml = '';
+    if(v.paradaId){
+      var est={arrived:'en la parada',onTime:'a tiempo',delayed:'con retraso',early:'adelantado',cancelled:'cancelada'};
+      pHtml='<p class="popup-meta">Parada: '+esc(v.paradaId)+(v.estadoLlegada?' ('+esc(est[v.estadoLlegada]||v.estadoLlegada)+')':'')+' </p>';
     }
-    var proximaParadaHtml = '';
-    if(v.proximaParadaId){
-      var estados = {
-        'arrived': 'en la parada ahora',
-        'onTime': 'a tiempo',
-        'delayed': 'con retraso',
-        'early': 'adelantado',
-        'cancelled': 'cancelada'
-      };
-      var estadoTxt = v.estadoLlegada ? (estados[v.estadoLlegada] || v.estadoLlegada) : '';
-      proximaParadaHtml = '<p class="popup-meta">Próxima parada: ' + escapeHtml(v.proximaParadaId) +
-        (estadoTxt ? ' (' + escapeHtml(estadoTxt) + ')' : '') + '</p>';
-    }
-    return (
-      '<span class="popup-linea">' + escapeHtml(v.linea) + '</span>' +
-      (v.destino ? '<p class="popup-dest">→ ' + escapeHtml(v.destino) + '</p>' : '') +
-      (v.direccion ? '<p class="popup-meta">Dirección: ' + escapeHtml(v.direccion) + '</p>' : '') +
-      retrasoHtml + proximaParadaHtml + horaReg +
-      '<p class="popup-meta">Vehículo: ' + escapeHtml(v.refVehiculo || v.id) + '</p>'
-    );
+    return '<span class="popup-linea">'+esc(v.linea)+'</span>'+
+      (v.destino?'<p class="popup-dest">→ '+esc(v.destino)+'</p>':'')+
+      (v.direccion?'<p class="popup-meta">Dir: '+esc(v.direccion)+'</p>':'')+
+      rHtml+pHtml+hReg+
+      '<p class="popup-meta">Vehículo: '+esc(v.refVehiculo||v.id)+'</p>';
   }
 
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  function esc(s){
+    return String(s).replace(/[&<>"']/g,function(c){
+      return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
 
