@@ -157,26 +157,14 @@
 
 <script>
 (function(){
-  // ---------------------------------------------------------------------
-  // CONFIGURACIÓN
-  // ---------------------------------------------------------------------
-  // Esta app está pensada para servirse desde GitHub Pages junto con su
-  // propia copia del feed, publicada por la Action de
-  // .github/workflows/actualizar-feed.yml en /feeds. Al estar en el mismo
-  // dominio que el HTML, no hay restricción CORS: el navegador la lee sin
-  // ningún proxy.
-  //
-  // Si en algún momento quieres volver a apuntar directamente al feed
-  // original de Bizkaia (con el riesgo de bloqueo CORS que ya conoces),
-  // cambia esta constante por:
-  //   "https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml"
   var URL_FEED = "https://bizkaibus.cuentasmurf7.workers.dev";
-
-  // Centro aproximado de Bizkaia (Bilbao)
+  var URL_RUTAS = "feeds/rutas_simple.json";
   var CENTRO = [43.2630, -2.9350];
 
   var map, capaBuses, marcadores = {};
   var intervaloId = null;
+  var rutasCache = null;      // null = no cargado, {} = cargado
+  var rutaActual = null;      // polyline actualmente dibujada
 
   function init(){
     map = L.map('map', {zoomControl:true}).setView(CENTRO, 11);
@@ -187,14 +175,56 @@
 
     capaBuses = L.layerGroup().addTo(map);
 
+    // Cerrar ruta al hacer clic en el mapa (fuera de un marcador)
+    map.on('click', borrarRuta);
+
     document.getElementById('btnRefrescar').addEventListener('click', cargar);
     document.getElementById('filtroLinea').addEventListener('input', pintarDesdeCache);
     document.getElementById('intervalo').addEventListener('change', reiniciarTemporizador);
+
+    // Precargar rutas en segundo plano
+    cargarRutas();
 
     cargar();
     reiniciarTemporizador();
   }
 
+  // ------------------------------------------------------------------
+  // RUTAS
+  // ------------------------------------------------------------------
+  function cargarRutas(){
+    fetch(URL_RUTAS)
+      .then(function(r){ return r.json(); })
+      .then(function(data){ rutasCache = data; })
+      .catch(function(){ rutasCache = {}; }); // fallo silencioso
+  }
+
+  function mostrarRuta(linea){
+    borrarRuta();
+    if(!rutasCache || !linea) return;
+
+    // Intentar con el código tal cual (ej. "A3136") y sin la A inicial (ej. "3136")
+    var coords = rutasCache[linea] || rutasCache[linea.replace(/^A/,'')];
+    if(!coords || coords.length < 2) return;
+
+    rutaActual = L.polyline(coords, {
+      color: '#2E7D4F',
+      weight: 4,
+      opacity: 0.85,
+      lineJoin: 'round'
+    }).addTo(map);
+  }
+
+  function borrarRuta(){
+    if(rutaActual){
+      map.removeLayer(rutaActual);
+      rutaActual = null;
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // TEMPORIZADOR Y ESTADO
+  // ------------------------------------------------------------------
   function reiniciarTemporizador(){
     if(intervaloId) clearInterval(intervaloId);
     var ms = parseInt(document.getElementById('intervalo').value, 10);
@@ -218,14 +248,14 @@
     document.getElementById('aviso').classList.remove('show');
   }
 
-  // ---------------------------------------------------------------------
+  // ------------------------------------------------------------------
   // CARGA Y PARSEO DEL XML SIRI
-  // ---------------------------------------------------------------------
+  // ------------------------------------------------------------------
   function cargar(){
     setStatus('loading', 'Actualizando…');
     document.getElementById('fuenteTexto').textContent =
-      'Fuente: copia propia en ' + URL_FEED + ' (actualizada por GitHub Actions cada ~2 min)';
-    var urlConCache = URL_FEED + (URL_FEED.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
+      'Fuente: Cloudflare Worker → SIRI Vehicle Monitoring (Consorcio de Transportes de Bizkaia)';
+    var urlConCache = URL_FEED + '?_=' + Date.now();
 
     fetch(urlConCache, {cache:'no-store'})
       .then(function(resp){
@@ -255,22 +285,11 @@
 
   function explicarError(err){
     mostrarAviso(
-      'No se ha podido leer <code>' + escapeHtml(URL_FEED) + '</code>.<br><br>' +
-      'Causas más probables:<br>' +
-      '• El repositorio acaba de crearse y la Action de GitHub aún no ha corrido por primera vez — ' +
-      'mira la pestaña <b>Actions</b> de tu repo y espera a que termine el primer job ' +
-      '«Actualizar feed Bizkaibus» (tarda menos de un minuto).<br>' +
-      '• GitHub Pages aún no está activado — en <b>Settings → Pages</b>, la fuente debe ser ' +
-      '«GitHub Actions».<br>' +
-      '• Estás abriendo este archivo en local (<code>file://</code>) en vez de la URL publicada de ' +
-      'GitHub Pages — esta versión necesita servirse desde el mismo dominio que el feed, así que ábrela ' +
-      'desde <code>https://tu-usuario.github.io/tu-repo/</code>.<br><br>' +
+      'No se ha podido leer el feed.<br><br>' +
       'Detalle técnico: ' + escapeHtml(err.message)
     );
   }
 
-  // Namespaces SIRI suelen venir como <Siri> sin prefijo o con prefijo (ns1:Siri, etc).
-  // Por eso buscamos por localName en vez de por nombre de tag completo.
   function porLocalName(nodo, nombre){
     var todos = nodo.getElementsByTagName('*');
     var out = [];
@@ -297,7 +316,6 @@
   }
 
   function parsearDuracionISO(s){
-    // PT1M30S, -PT0H3M28S, etc → segundos (con signo)
     if(!s) return null;
     var neg = s.indexOf('-') === 0;
     var m = s.replace('-','').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?/);
@@ -332,10 +350,6 @@
       var refVehiculo = textoHijo(mvj, 'VehicleRef');
       var journeyRef = textoHijo(mvj, 'VehicleJourneyRef');
 
-      // Este feed en concreto no rellena LineRef ni PublishedLineName.
-      // El código de línea real va escondido dentro de VehicleJourneyRef,
-      // con el patrón: trp_<LINEA>_<resto>. Ejemplo real observado:
-      //   trp_A2314_687_OP40LPV2_39600_O40L2P2314_231401_7  →  línea "A2314"
       var linea = textoHijo(mvj, 'PublishedLineName') || textoHijo(mvj, 'LineRef');
       if(!linea && journeyRef){
         var m = journeyRef.match(/^trp_([A-Za-z]?\d+)_/);
@@ -370,9 +384,9 @@
     return vehiculos;
   }
 
-  // ---------------------------------------------------------------------
+  // ------------------------------------------------------------------
   // PINTADO EN EL MAPA
-  // ---------------------------------------------------------------------
+  // ------------------------------------------------------------------
   function iconoBus(linea, bearing){
     var rot = (typeof bearing === 'number') ? bearing : 0;
     return L.divIcon({
@@ -405,6 +419,9 @@
     visibles.forEach(function(v){
       var marker = L.marker([v.lat, v.lon], {icon: iconoBus(v.linea, v.bearing)});
       marker.bindPopup(construirPopup(v));
+      marker.on('click', function(){
+        mostrarRuta(v.linea);
+      });
       marker.addTo(capaBuses);
       marcadores[v.id] = marker;
     });
