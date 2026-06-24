@@ -220,6 +220,11 @@
     });
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
+    // --- LÍNEA TEMPORAL DE DEPURACIÓN, quitar una vez resuelto el bug ---
+    window.__debugMap = map;
+    window.__debugVehiculos = function(){ return cacheVehiculos; };
+    // ---------------------------------------------------------------------
+
     // El contenedor #map vive dentro de un layout flex (main{flex:1}), cuya
     // altura final el navegador resuelve después del primer pintado. Si
     // MapLibre calcula sus dimensiones internas (el <canvas> WebGL) antes de
