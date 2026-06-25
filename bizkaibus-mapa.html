@@ -82,7 +82,7 @@
   </main>
   <footer>
     <span id="fuenteTexto">Fuente: SIRI Vehicle Monitoring — Consorcio de Transportes de Bizkaia</span>
-    <span>Mapa © OpenStreetMap, Leaflet</span>
+    <span>Mapa © OpenStreetMap</span>
   </footer>
 </div>
 
@@ -101,6 +101,10 @@
   // ------------------------------------------------------------------
   function init(){
     map = L.map('map', {zoomControl:true}).setView(CENTRO, 11);
+    // Se quita el logo/marca de Leaflet del control de atribución del mapa
+    // (atributo "prefix" del attributionControl), manteniendo la atribución
+    // a OpenStreetMap, que sí es obligatoria por sus términos de uso.
+    map.attributionControl.setPrefix(false);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
