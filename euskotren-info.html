@@ -110,8 +110,8 @@
     <div id="map"></div>
 
     <!-- Buscador flotante -->
-    <div id="buscador-panel">
-      <div id="buscador-toggle" onclick="toggleBuscador()">
+    <div id="buscador-panel" style="position:fixed;top:80px;right:14px;z-index:9999;width:300px;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.4);overflow:hidden;">
+      <div id="buscador-toggle" onclick="toggleBuscador()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#0F5FA6;color:white;cursor:pointer;font-weight:700;font-size:13px;">
         <span>🔍 Buscar horario de tren</span>
         <span class="flecha">▼</span>
       </div>
