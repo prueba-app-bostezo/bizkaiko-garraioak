@@ -76,7 +76,12 @@
   </header>
 
   <main>
-    <div id="map"></div>
+    <div id="map">
+    <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:500;max-width:580px;width:calc(100% - 24px);background:rgba(28,27,26,0.92);color:#F6F2EA;border:1px solid #E8740C;border-radius:10px;padding:12px 16px;font-size:12px;line-height:1.6;box-shadow:0 4px 14px rgba(0,0,0,.3);">
+      <strong style="color:#E8740C;">ℹ️ Aviso · Oharra</strong><br>
+      Solo podemos mostrar los trenes que las fuentes oficiales nos proporcionan en tiempo real. Si el número de trenes parece inferior al habitual, es debido a las limitaciones de los datos oficiales publicados, no a un error de esta web. Disculpe las molestias.<br>
+      <span style="color:#C9C4BC;">Iturri ofizialek denbora errealean emandako trenak bakarrik erakutsi ditzakegu. Ohikoa baino tren gutxiago agertzen badira, argitaratutako datu ofizialen mugengatik da, ez webgune honetako akats batengatik. Barkatu eragozpenak.</span>
+    </div></div>
     <div class="leyenda">
       <span class="leyenda-titulo" id="contadorTrenes">0 trenes</span>
       <div class="leyenda-linea"><span class="leyenda-dot" style="background:#E8740C;"></span><span>L1 · Etxebarri – Plentzia</span></div>
@@ -102,19 +107,27 @@
 
   // Códigos de destino → línea
   var DEST_LINEA = {
-    ETX:'L1', PLE:'L1', URD:'L1', IBB:'L1', SOE:'L1', LAR:'L1',
-    BSR:'L2', KAB:'L2', MRM:'L2', ANS:'L2', GUR:'L2', SES:'L2',
-    ABT:'L2', BAG:'L2', SAR:'L2'
+    ETX:"L1", PLE:"L1", SOE:"L1", LAR:"L1", URD:"L1", IBB:"L1",
+    ALG:"L1", GET:"L1", NEG:"L1", ARE:"L1", LEI:"L1", ROM:"L1",
+    BSR:"L2", KAB:"L2", MRM:"L2", ANS:"L2", GUR:"L2", SES:"L2",
+    ABT:"L2", BAG:"L2", URB:"L2", ENE:"L2",
+    SAR:"L1", SIN:"L1", SAM:"L1", ABA:"L1", CAV:"L1", BOL:"L1",
+    SAN:"L1", MOY:"L1", ERA:"L1", SOP:"L1", AST:"L1",
+    DES:"L2", BAS:"L2", LAG:"L2", BEG:"L2", MAT:"L2", ELO:"L2"
   };
 
   // Nombres legibles de estaciones
   var ESTACIONES = {
-    ETX:'Etxebarri', PLE:'Plentzia', URD:'Urduliz', IBB:'Ibarbengoa',
-    BSR:'Basauri',   KAB:'Kabiezes', MRM:'Mamariga', ANS:'Ansio',
-    GUR:'Gurutzeta/Cruces', SES:'Sestao', ABT:'Abatxolo',
-    BAG:'Bagatza',   SAR:'Sarriko',  SOE:'Sopela', LAR:'Larrabasterra',
-    NEG:'Neguri',    ARE:'Areeta',   SIN:'San Ignazio', SAM:'Santimami/San Mamés',
-    ABA:'Abando',    CAV:'Casco Viejo', BOL:'Bolueta', SAN:'Santutxu'
+    ETX:"Etxebarri",   PLE:"Plentzia",    URD:"Urduliz",     IBB:"Ibarbengoa",
+    BSR:"Basauri",     KAB:"Kabiezes",    MRM:"Mamariga",    ANS:"Ansio",
+    GUR:"Gurutzeta",   SES:"Sestao",      ABT:"Abatxolo",    BAG:"Bagatza",
+    SAR:"Sarriko",     SOE:"Sopela",      LAR:"Larrabasterra",NEG:"Neguri",
+    ARE:"Areeta",      SIN:"San Ignazio", SAM:"San Mamés",   ABA:"Abando",
+    CAV:"Casco Viejo", BOL:"Bolueta",     SAN:"Santutxu",    SOP:"Sopelana",
+    ERA:"Erandio",     MOY:"Moyua",       ALG:"Algorta",     URB:"Urbinaga",
+    BAS:"Basarrate",   DES:"Deusto",      ENE:"Eneaga",      LEI:"Leioa",
+    GET:"Getxo",       ROM:"Romo",        LAG:"Larraskitu",  BEG:"Bego00f1a",
+    MAT:"Matiko",      ELO:"Elorrieta",   EAS:"Easo",        ZOR:"Zorrotza"
   };
 
   var map, capaTrenes, intervaloId;
