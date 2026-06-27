@@ -39,7 +39,8 @@
 
   /* ── Buscador flotante ───────────────────────────────────────────────── */
   #buscador-panel{
-    position:absolute;top:14px;right:14px;z-index:1000;
+    pointer-events:all;
+    position:absolute;top:14px;right:14px;z-index:2000;
     width:300px;
     background:white;border-radius:12px;
     box-shadow:0 4px 20px rgba(0,0,0,.22);
@@ -447,3 +448,5 @@ function buscarHorario(){
 function hAm(s){ var p=s.split(':'); return parseInt(p[0])*60+parseInt(p[1]); }
 function cLinea(id){ return {E1:'#0070C0',E3:'#00B050',E4:'#1F3F8F',L3:'#E040A0'}[id]||'#666'; }
 </script>
+</body>
+</html>
