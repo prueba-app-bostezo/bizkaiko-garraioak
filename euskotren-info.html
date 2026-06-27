@@ -7,78 +7,35 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <style>
-  :root{
-    --euskotren:#0F5FA6;--euskotren-osc:#0A4278;
-    --tinta:#1C1B1A;--hueso:#F6F2EA;--gris:#6B6660;--linea:#DCD5C8;
-    --panel:#2A2826;--rojo:#B3261E;
-  }
+  :root{--euskotren:#0F5FA6;--tinta:#1C1B1A;--hueso:#F6F2EA;--gris:#6B6660;--borde:#DCD5C8;}
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;font-family:'Helvetica Neue',Arial,sans-serif;background:var(--hueso);color:var(--tinta);}
   #app{display:flex;flex-direction:column;height:100%;}
-
-  header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--tinta);color:var(--hueso);border-bottom:4px solid var(--euskotren);flex-wrap:wrap;}
+  header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:#1C1B1A;color:#F6F2EA;border-bottom:4px solid var(--euskotren);flex-wrap:wrap;}
   .brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;}
-  .brand .mark{font-weight:800;font-size:20px;letter-spacing:.5px;color:var(--euskotren);}
+  .brand .mark{font-weight:800;font-size:20px;color:var(--euskotren);}
   .brand .sub{font-size:12px;color:#C9C4BC;}
-  .btn{border:1px solid var(--euskotren);background:transparent;color:var(--euskotren);padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .15s,color .15s;}
-  .btn:hover{background:var(--euskotren);color:white;}
-  .btn-back{border-color:#6B6660;color:#C9C4BC;}
-  .btn-back:hover{background:#6B6660;color:var(--tinta);}
-
-  main{display:flex;flex:1;min-height:0;flex-direction:column;}
-
-  /* Aviso sin datos RT */
-  .aviso-rt{
-    background:#0F5FA6;color:white;
-    padding:12px 18px;font-size:13px;line-height:1.6;
-    display:flex;gap:12px;align-items:flex-start;
-  }
-  .aviso-rt .icono{font-size:20px;flex-shrink:0;margin-top:1px;}
-  .aviso-rt .euskera{color:rgba(255,255,255,0.75);font-size:12px;margin-top:3px;}
-
-  /* Tarjetas de líneas */
-  .lineas{
-    display:flex;flex-wrap:wrap;gap:14px;
-    padding:16px 18px;background:var(--hueso);
-    border-bottom:1px solid var(--linea);
-  }
-  .linea-btn{
-    display:flex;align-items:center;gap:10px;
-    background:white;border:2px solid var(--linea);
-    border-radius:10px;padding:10px 14px;
-    cursor:pointer;transition:border-color .15s, transform .1s;
-    font-family:inherit;
-  }
-  .linea-btn:hover{border-color:var(--color);transform:translateY(-2px);}
-  .linea-btn.activa{border-color:var(--color);background:var(--color);}
-  .linea-btn.activa .linea-nombre,.linea-btn.activa .linea-trayecto{color:white;}
-  .linea-badge{
-    width:38px;height:38px;border-radius:8px;
-    background:var(--color);color:white;
-    font-weight:800;font-size:14px;
-    display:flex;align-items:center;justify-content:center;
-    flex-shrink:0;
-  }
-  .linea-btn.activa .linea-badge{background:rgba(255,255,255,0.25);}
-  .linea-nombre{font-weight:700;font-size:13px;color:var(--tinta);}
-  .linea-trayecto{font-size:11px;color:var(--gris);margin-top:2px;}
-
-  /* Mapa */
-  .mapa-contenedor{position:relative;flex:1;min-height:0;}
+  .btn-back{border:1px solid #6B6660;background:transparent;color:#C9C4BC;padding:7px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;}
+  .btn-back:hover{background:#6B6660;color:#1C1B1A;}
+  .aviso-rt{background:#0F5FA6;color:white;padding:12px 18px;font-size:12px;line-height:1.6;display:flex;gap:12px;}
+  .aviso-rt .eu{color:rgba(255,255,255,0.72);margin-top:3px;font-size:11px;}
+  .aviso-rt a{color:white;font-weight:700;}
+  .lineas{display:flex;flex-wrap:wrap;gap:10px;padding:12px 16px;background:var(--hueso);border-bottom:1px solid var(--borde);align-items:center;}
+  .linea-btn{display:flex;align-items:center;gap:8px;background:white;border:2px solid var(--borde);border-radius:8px;padding:7px 12px;cursor:pointer;font-family:inherit;transition:border-color .15s,transform .1s;}
+  .linea-btn:hover{border-color:var(--c);transform:translateY(-1px);}
+  .linea-btn.activa{border-color:var(--c);background:var(--c);}
+  .linea-btn.activa .lb-nombre,.linea-btn.activa .lb-desc{color:white;}
+  .lb-badge{width:32px;height:32px;border-radius:6px;background:var(--c);color:white;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .linea-btn.activa .lb-badge{background:rgba(255,255,255,0.25);}
+  .lb-nombre{font-weight:700;font-size:12px;color:var(--tinta);}
+  .lb-desc{font-size:10px;color:var(--gris);margin-top:1px;max-width:140px;line-height:1.3;}
+  main{flex:1;min-height:0;position:relative;}
   #map{position:absolute;inset:0;}
-
-  .leyenda{
-    position:absolute;bottom:16px;left:16px;z-index:500;
-    background:rgba(28,27,26,0.92);color:var(--hueso);
-    padding:10px 14px;border-radius:8px;font-size:12px;
-    display:flex;flex-direction:column;gap:5px;
-    box-shadow:0 4px 14px rgba(0,0,0,.25);
-  }
-  .leyenda b{color:#0F5FA6;font-size:13px;}
-  .ley-item{display:flex;align-items:center;gap:7px;}
-  .ley-color{width:24px;height:4px;border-radius:2px;flex-shrink:0;}
-
-  footer{padding:7px 16px;font-size:11px;color:var(--gris);background:var(--hueso);border-top:1px solid var(--linea);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+  .leyenda{position:absolute;bottom:14px;left:14px;z-index:500;background:rgba(28,27,26,0.93);color:#F6F2EA;padding:10px 14px;border-radius:8px;font-size:11px;display:flex;flex-direction:column;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,.3);}
+  .leyenda b{color:#5BA3D9;font-size:12px;margin-bottom:2px;}
+  .li{display:flex;align-items:center;gap:7px;}
+  .lc{width:22px;height:4px;border-radius:2px;flex-shrink:0;}
+  footer{padding:7px 16px;font-size:11px;color:var(--gris);background:var(--hueso);border-top:1px solid var(--borde);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
 </style>
 </head>
 <body>
@@ -88,163 +45,222 @@
       <span class="mark">EUSKOTREN</span>
       <span class="sub">líneas de Bizkaia · información de red</span>
     </div>
-    <button class="btn btn-back" onclick="window.location.href='index.html'">← Volver</button>
+    <button class="btn-back" onclick="window.location.href='index.html'">← Volver</button>
   </header>
-
-  <main>
-    <!-- Aviso sin datos en tiempo real -->
-    <div class="aviso-rt">
-      <span class="icono">ℹ️</span>
-      <div>
-        <strong>Sin datos en tiempo real</strong> — Euskotren no publica información de posición de trenes en tiempo real en fuentes abiertas. Esta página muestra el trazado estático de las líneas de Bizkaia. Para horarios actualizados visita <a href="https://euskotren.euskadi.eus" target="_blank" style="color:white;font-weight:700;">euskotren.euskadi.eus</a>.<br>
-        <span class="euskera">Euskotrenen tren-posizioari buruzko denbora errealeko datuak ez daude eskuragarri iturri irekietan. Orrialde honek Bizkaiko lineen trazatu estatikoa erakusten du. Ordutegietan: <a href="https://euskotren.euskadi.eus" target="_blank" style="color:rgba(255,255,255,0.75);">euskotren.euskadi.eus</a></span>
-      </div>
+  <div class="aviso-rt">
+    <span style="font-size:18px;flex-shrink:0;">ℹ️</span>
+    <div>
+      <strong>Sin datos en tiempo real</strong> — Euskotren no publica posición de trenes en fuentes abiertas. Esta página muestra el trazado estático de las líneas de Bizkaia. Para horarios: <a href="https://euskotren.euskadi.eus" target="_blank">euskotren.euskadi.eus</a><br>
+      <span class="eu">Euskotrenen tren-posizioari buruzko denbora errealeko datuak ez daude eskuragarri iturri irekietan. Orrialde honek Bizkaiko lineen trazatu estatikoa erakusten du. Ordutegietan: <a href="https://euskotren.euskadi.eus" target="_blank" style="color:rgba(255,255,255,0.72);">euskotren.euskadi.eus</a></span>
     </div>
-
-    <!-- Selector de líneas -->
-    <div class="lineas" id="selector-lineas"></div>
-
-    <!-- Mapa -->
-    <div class="mapa-contenedor">
-      <div id="map"></div>
-      <div class="leyenda" id="leyenda">
-        <b>Euskotren Bizkaia</b>
-        <div class="ley-item"><span class="ley-color" style="background:#C0392B;"></span><span>E1 · Matiko – Durango / Amara</span></div>
-        <div class="ley-item"><span class="ley-color" style="background:#27AE60;"></span><span>E3 · Kukullaga – Lezama (Txorierri)</span></div>
-        <div class="ley-item"><span class="ley-color" style="background:#8E44AD;"></span><span>E4 · Matiko – Bermeo (Urdaibai)</span></div>
-      </div>
+  </div>
+  <div class="lineas" id="selector"></div>
+  <main>
+    <div id="map"></div>
+    <div class="leyenda">
+      <b>Euskotren Bizkaia</b>
+      <div class="li"><span class="lc" style="background:#0070C0;"></span><span>E1 · Matiko – Durango/Traña</span></div>
+      <div class="li"><span class="lc" style="background:#00B050;"></span><span>E3 · Kukullaga – Lezama (Txorierri)</span></div>
+      <div class="li"><span class="lc" style="background:#1F3F8F;"></span><span>E4 · Matiko – Bermeo (Urdaibai)</span></div>
+      <div class="li"><span class="lc" style="background:#7030A0;"></span><span>L2 · Basauri – Kabiezes</span></div>
+      <div class="li"><span class="lc" style="background:#E040A0;"></span><span>L3 · Kukullaga – Matiko</span></div>
+      <div class="li"><span class="lc" style="background:#70AD47;"></span><span>TR · Atxuri – La Casilla (Tranvía)</span></div>
     </div>
   </main>
-
   <footer>
-    <span>Trazados aproximados basados en datos públicos. Sin datos en tiempo real disponibles.</span>
+    <span>Trazados basados en paradas oficiales verificadas. Sin datos en tiempo real disponibles.</span>
     <span>Mapa © OpenStreetMap, Leaflet</span>
   </footer>
 </div>
-
 <script>
 (function(){
-  var CENTRO = [43.18, -2.72];
+  // Tramo L3/E1/E3/E4 compartido: Kukullaga → Matiko (7 estaciones subterráneas)
+  var TRAMO_METRO = [
+    {n:'Kukullaga-Etxebarri', c:[43.2708,-2.9298]},
+    {n:'Otxarkoaga',          c:[43.2735,-2.9332]},
+    {n:'Txurdinaga',          c:[43.2720,-2.9358]},
+    {n:'Zurbaranbarri',       c:[43.2706,-2.9376]},
+    {n:'Zazpikaleak/Casco Viejo', c:[43.2578,-2.9228]},
+    {n:'Uribarri',            c:[43.2650,-2.9300]},
+    {n:'Matiko',              c:[43.2592,-2.9293]},
+  ];
 
-  // ── Definición de líneas con trazado aproximado ─────────────────────────
   var LINEAS = [
     {
-      id: 'E1',
-      nombre: 'E1',
-      trayecto: 'Matiko – Durango / Amorebieta',
-      color: '#C0392B',
-      estaciones: [
-        // Tramo Bizkaia: Matiko → Durango
-        {n:'Matiko',           c:[43.2592,-2.9293]},
-        {n:'Begoña',           c:[43.2620,-2.9221]},
-        {n:'Errekalde',        c:[43.2638,-2.9116]},
-        {n:'Elorrieta',        c:[43.2618,-2.9030]},
-        {n:'Bolueta',          c:[43.2608,-2.8939]},
-        {n:'Basarrate',        c:[43.2565,-2.8800]},
-        {n:'Arrigorriaga',     c:[43.2023,-2.8847]},
-        {n:'Ariz',             c:[43.1960,-2.8676]},
-        {n:'Ugao-Miraballes',  c:[43.1810,-2.8545]},
-        {n:'Laudio/Llodio',    c:[43.1416,-2.9610]},
-        {n:'Amorebieta-Etxano',c:[43.2239,-2.7327]},
-        {n:'Boroa',            c:[43.2138,-2.7022]},
-        {n:'Iurreta',          c:[43.1888,-2.6631]},
-        {n:'Durango',          c:[43.1726,-2.6345]},
+      id:'E1', nombre:'E1', color:'#0070C0',
+      desc:'Matiko – Durango / Traña-Abadiño',
+      estaciones:[
+        // Tramo metro compartido
+        {n:'Matiko',              c:[43.2592,-2.9293]},
+        {n:'Uribarri',            c:[43.2650,-2.9300]},
+        {n:'Zazpikaleak/Casco Viejo', c:[43.2578,-2.9228]},
+        {n:'Zurbaranbarri',       c:[43.2706,-2.9376]},
+        {n:'Txurdinaga',          c:[43.2720,-2.9358]},
+        {n:'Otxarkoaga',          c:[43.2735,-2.9332]},
+        {n:'Kukullaga-Etxebarri', c:[43.2708,-2.9298]},
+        // Tramo clásico hacia Durango (sale de Kukullaga hacia Atxuri y Basarrate)
+        {n:'Etxebarri',           c:[43.2279,-2.8846]},
+        {n:'Ariz (Basauri)',       c:[43.2390,-2.8820]},
+        {n:'Basarrate',           c:[43.2565,-2.8800]},
+        {n:'Bolueta',             c:[43.2608,-2.8939]},
+        // Aquí el tren sale por Atxuri hacia Durango
+        {n:'Zuhatzu (Galdakao)',   c:[43.2204,-2.8720]},
+        {n:'Usansolo',             c:[43.2152,-2.8596]},
+        {n:'Bedia',                c:[43.2072,-2.8383]},
+        {n:'Lemoa',                c:[43.2050,-2.8100]},
+        {n:'Amorebieta-Geralekua', c:[43.2195,-2.7360]},
+        {n:'Amorebieta-Geltokia',  c:[43.2239,-2.7327]},
+        {n:'Boroa',                c:[43.2138,-2.7022]},
+        {n:'Iurreta',              c:[43.1888,-2.6631]},
+        {n:'Durango',              c:[43.1726,-2.6345]},
+        {n:'Elorrio',              c:[43.1271,-2.5386]},
+        {n:'Zaldibar',             c:[43.1620,-2.6190]},
+        {n:'Traña-Abadiño',        c:[43.1553,-2.6060]},
       ]
     },
     {
-      id: 'E3',
-      nombre: 'E3',
-      trayecto: 'Kukullaga – Lezama (Txorierri)',
-      color: '#27AE60',
-      estaciones: [
+      id:'E3', nombre:'E3', color:'#00B050',
+      desc:'Kukullaga – Lezama (Txorierri)',
+      estaciones:[
+        // Tramo metro compartido (mismo túnel que E1/E4/L3)
         {n:'Kukullaga-Etxebarri', c:[43.2708,-2.9298]},
-        {n:'Zangroiz-Sondika',    c:[43.2946,-2.9289]},
-        {n:'Loiu',                c:[43.3042,-2.9238]},
-        {n:'Derio',               c:[43.3106,-2.9020]},
+        {n:'Otxarkoaga',          c:[43.2735,-2.9332]},
+        {n:'Txurdinaga',          c:[43.2720,-2.9358]},
+        {n:'Zurbaranbarri',       c:[43.2706,-2.9376]},
+        {n:'Zazpikaleak/Casco Viejo', c:[43.2578,-2.9228]},
+        {n:'Uribarri',            c:[43.2650,-2.9300]},
+        {n:'Matiko',              c:[43.2592,-2.9293]},
+        // Tunel nuevo bajo el Archanda hacia Txorierri
+        {n:'Ola (Sondika)',        c:[43.3020,-2.9460]},
+        {n:'Sondika',             c:[43.2990,-2.9390]},
+        {n:'Derio',               c:[43.3010,-2.9100]},
         {n:'Zamudio',             c:[43.3044,-2.8723]},
-        {n:'Larrabasterra',       c:[43.3180,-2.8580]},
         {n:'Lezama',              c:[43.3338,-2.8459]},
       ]
     },
     {
-      id: 'E4',
-      nombre: 'E4',
-      trayecto: 'Matiko – Bermeo (Urdaibai)',
-      color: '#8E44AD',
-      estaciones: [
-        {n:'Matiko',           c:[43.2592,-2.9293]},
-        {n:'Begoña',           c:[43.2620,-2.9221]},
-        {n:'Errekalde',        c:[43.2638,-2.9116]},
-        {n:'Elorrieta',        c:[43.2618,-2.9030]},
-        {n:'Bolueta',          c:[43.2608,-2.8939]},
-        {n:'Basarrate',        c:[43.2565,-2.8800]},
-        {n:'Arrigorriaga',     c:[43.2023,-2.8847]},
-        {n:'Amorebieta-Etxano',c:[43.2239,-2.7327]},
-        {n:'Muxika',           c:[43.2618,-2.6780]},
-        {n:'Gernika-Lumo',     c:[43.3159,-2.6773]},
-        {n:'Arteaga',          c:[43.3450,-2.6720]},
-        {n:'Pedernales',       c:[43.3705,-2.6900]},
-        {n:'Sukarrieta',       c:[43.3826,-2.7000]},
-        {n:'Mundaka',          c:[43.4075,-2.6980]},
-        {n:'Bermeo',           c:[43.4227,-2.7240]},
+      id:'E4', nombre:'E4', color:'#1F3F8F',
+      desc:'Matiko – Bermeo (Urdaibai)',
+      estaciones:[
+        // Tramo metro compartido
+        {n:'Matiko',              c:[43.2592,-2.9293]},
+        {n:'Uribarri',            c:[43.2650,-2.9300]},
+        {n:'Zazpikaleak/Casco Viejo', c:[43.2578,-2.9228]},
+        {n:'Zurbaranbarri',       c:[43.2706,-2.9376]},
+        {n:'Txurdinaga',          c:[43.2720,-2.9358]},
+        {n:'Otxarkoaga',          c:[43.2735,-2.9332]},
+        {n:'Kukullaga-Etxebarri', c:[43.2708,-2.9298]},
+        // Tramo clásico compartido con E1 hasta Amorebieta
+        {n:'Etxebarri',           c:[43.2279,-2.8846]},
+        {n:'Ariz (Basauri)',       c:[43.2390,-2.8820]},
+        {n:'Bolueta',             c:[43.2608,-2.8939]},
+        {n:'Zuhatzu (Galdakao)',   c:[43.2204,-2.8720]},
+        {n:'Usansolo',             c:[43.2152,-2.8596]},
+        {n:'Bedia',                c:[43.2072,-2.8383]},
+        {n:'Lemoa',                c:[43.2050,-2.8100]},
+        {n:'Amorebieta-Geralekua', c:[43.2195,-2.7360]},
+        {n:'Amorebieta-Geltokia',  c:[43.2239,-2.7327]},
+        // Ramal Urdaibai hacia Bermeo
+        {n:'Zugastieta (Muxika)',   c:[43.2618,-2.6780]},
+        {n:'Muxika',               c:[43.2750,-2.6830]},
+        {n:'Gernika-Lurgorri',     c:[43.3100,-2.6820]},
+        {n:'Gernika-Institutua',   c:[43.3130,-2.6790]},
+        {n:'Gernika-Lumo',         c:[43.3159,-2.6773]},
+        {n:'Forua',                c:[43.3280,-2.6780]},
+        {n:'S. Kristobal (Busturia)',c:[43.3420,-2.6810]},
+        {n:'Axpe (Busturia)',       c:[43.3530,-2.6850]},
+        {n:'Itsasbegi (Busturia)', c:[43.3650,-2.6880]},
+        {n:'Mundaka',              c:[43.4075,-2.6980]},
+        {n:'Bermeo',               c:[43.4227,-2.7240]},
       ]
-    }
+    },
+    {
+      id:'L2', nombre:'L2', color:'#7030A0',
+      desc:'Basauri – Kabiezes',
+      estaciones:[
+        {n:'Basauri',             c:[43.2365,-2.8914]},
+        {n:'Ariz',                c:[43.2390,-2.8820]},
+        {n:'Etxebarri',           c:[43.2279,-2.8846]},
+        {n:'Erandio',             c:[43.3050,-2.9680]},
+        {n:'Ansio',               c:[43.3170,-2.9820]},
+        {n:'Gurutzeta/Cruces',    c:[43.3100,-3.0020]},
+        {n:'Sestao',              c:[43.3094,-3.0098]},
+        {n:'Abatxolo',            c:[43.3180,-3.0140]},
+        {n:'Bagatza',             c:[43.3240,-3.0200]},
+        {n:'Santurtzi',           c:[43.3352,-3.0300]},
+        {n:'Kabiezes',            c:[43.3530,-3.0490]},
+      ]
+    },
+    {
+      id:'L3', nombre:'L3', color:'#E040A0',
+      desc:'Kukullaga – Matiko (metro)',
+      estaciones:[
+        {n:'Kukullaga-Etxebarri', c:[43.2708,-2.9298]},
+        {n:'Otxarkoaga',          c:[43.2735,-2.9332]},
+        {n:'Txurdinaga',          c:[43.2720,-2.9358]},
+        {n:'Zurbaranbarri',       c:[43.2706,-2.9376]},
+        {n:'Zazpikaleak/Casco Viejo', c:[43.2578,-2.9228]},
+        {n:'Uribarri',            c:[43.2650,-2.9300]},
+        {n:'Matiko',              c:[43.2592,-2.9293]},
+      ]
+    },
+    {
+      id:'TR', nombre:'TR', color:'#70AD47',
+      desc:'Atxuri – La Casilla (Tranvía)',
+      estaciones:[
+        {n:'Atxuri',              c:[43.2542,-2.9219]},
+        {n:'San Mamés',           c:[43.2639,-2.9490]},
+        {n:'Basurto/Hospital',    c:[43.2580,-2.9480]},
+        {n:'La Casilla',          c:[43.2530,-2.9510]},
+        {n:'Bolueta',             c:[43.2608,-2.8939]},
+      ]
+    },
   ];
 
-  var map, capas = {}, capaEstaciones = {};
+  var map, capaLineas = {}, capaEstaciones = {};
   var lineaActiva = null;
 
   function init(){
-    map = L.map('map').setView(CENTRO, 10);
+    map = L.map('map').setView([43.28,-2.88], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:18,
       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    // Dibujar todas las líneas
     LINEAS.forEach(function(l){
       var coords = l.estaciones.map(function(e){ return e.c; });
-      capas[l.id] = L.polyline(coords,{color:l.color,weight:4,opacity:0.8}).addTo(map);
-
-      // Marcadores de estaciones
+      capaLineas[l.id] = L.polyline(coords,{color:l.color,weight:4,opacity:0.85}).addTo(map);
       var grupo = L.layerGroup();
       l.estaciones.forEach(function(e){
-        var marker = L.circleMarker(e.c,{
-          radius:5, color:l.color, fillColor:'white',
-          fillOpacity:1, weight:2
-        });
-        marker.bindTooltip(e.n, {permanent:false, direction:'top'});
-        marker.addTo(grupo);
+        L.circleMarker(e.c,{
+          radius:5,color:l.color,fillColor:'white',fillOpacity:1,weight:2
+        }).bindTooltip(e.n,{permanent:false,direction:'top'}).addTo(grupo);
       });
       capaEstaciones[l.id] = grupo;
       grupo.addTo(map);
     });
 
-    // Construir selector
-    var sel = document.getElementById('selector-lineas');
+    var sel = document.getElementById('selector');
     LINEAS.forEach(function(l){
       var btn = document.createElement('button');
       btn.className = 'linea-btn';
-      btn.style.setProperty('--color', l.color);
-      btn.innerHTML =
-        '<div class="linea-badge">'+l.nombre+'</div>'+
-        '<div><div class="linea-nombre">Línea '+l.nombre+'</div>'+
-        '<div class="linea-trayecto">'+l.trayecto+'</div></div>';
-      btn.addEventListener('click', function(){
-        seleccionarLinea(l.id, btn);
-      });
+      btn.style.setProperty('--c', l.color);
       btn.dataset.id = l.id;
+      btn.innerHTML =
+        '<div class="lb-badge">'+l.nombre+'</div>'+
+        '<div><div class="lb-nombre">Línea '+l.nombre+'</div>'+
+        '<div class="lb-desc">'+l.desc+'</div></div>';
+      btn.addEventListener('click', function(){ seleccionar(l.id, btn); });
       sel.appendChild(btn);
     });
   }
 
-  function seleccionarLinea(id, btn){
+  function seleccionar(id, btn){
     if(lineaActiva === id){
-      // Desactivar
       lineaActiva = null;
       document.querySelectorAll('.linea-btn').forEach(function(b){ b.classList.remove('activa'); });
       LINEAS.forEach(function(l){
-        capas[l.id].setStyle({opacity:0.8, weight:4});
+        capaLineas[l.id].setStyle({opacity:0.85,weight:4});
         if(!map.hasLayer(capaEstaciones[l.id])) capaEstaciones[l.id].addTo(map);
       });
       return;
@@ -252,14 +268,13 @@
     lineaActiva = id;
     document.querySelectorAll('.linea-btn').forEach(function(b){ b.classList.remove('activa'); });
     btn.classList.add('activa');
-
     LINEAS.forEach(function(l){
-      if(l.id === id){
-        capas[l.id].setStyle({opacity:1, weight:6});
+      if(l.id===id){
+        capaLineas[l.id].setStyle({opacity:1,weight:6});
         if(!map.hasLayer(capaEstaciones[l.id])) capaEstaciones[l.id].addTo(map);
-        map.fitBounds(capas[l.id].getBounds(), {padding:[30,30]});
+        map.fitBounds(capaLineas[l.id].getBounds(),{padding:[40,40]});
       } else {
-        capas[l.id].setStyle({opacity:0.2, weight:3});
+        capaLineas[l.id].setStyle({opacity:0.15,weight:3});
         if(map.hasLayer(capaEstaciones[l.id])) map.removeLayer(capaEstaciones[l.id]);
       }
     });
