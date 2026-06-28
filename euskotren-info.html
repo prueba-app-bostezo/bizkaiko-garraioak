@@ -286,11 +286,11 @@
     },
   ];
 
-  var map; window.capaLineas = {}; window.capaEstaciones = {}; var capaLineas = window.capaLineas; var capaEstaciones = window.capaEstaciones;
+  window.map = null; window.capaLineas = {}; window.capaEstaciones = {};
   var lineaActiva = null;
 
   function init(){
-    map = L.map('map').setView([43.28,-2.88], 11);
+    window.map = L.map('map').setView([43.28,-2.88], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:18,
       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -298,14 +298,14 @@
 
     LINEAS.forEach(function(l){
       var coords = l.estaciones.map(function(e){ return e.c; });
-      capaLineas[l.id] = L.polyline(coords,{color:l.color,weight:4,opacity:0.85}).addTo(map);
+      window.capaLineas[l.id] = L.polyline(coords,{color:l.color,weight:4,opacity:0.85}).addTo(map);
       var grupo = L.layerGroup();
       l.estaciones.forEach(function(e){
         L.circleMarker(e.c,{
           radius:5,color:l.color,fillColor:'white',fillOpacity:1,weight:2
         }).bindTooltip(e.n,{permanent:false,direction:'top'}).addTo(grupo);
       });
-      capaEstaciones[l.id] = grupo;
+      window.capaEstaciones[l.id] = grupo;
       grupo.addTo(map);
     });
 
@@ -519,9 +519,9 @@ function buscarHorario(){
   if(!trenes.length){
     div.innerHTML='<div class="res-vacio">No hay trenes directos entre estos municipios.</div>';
     // Restaurar todas las líneas al estado normal
-    Object.keys(capaLineas).forEach(function(lid){
-      capaLineas[lid].setStyle({opacity:0.85, weight:4});
-      if(!map.hasLayer(capaEstaciones[lid])) capaEstaciones[lid].addTo(map);
+    Object.keys(window.capaLineas).forEach(function(lid){
+      window.capaLineas[lid].setStyle({opacity:0.85, weight:4});
+      if(!window.map.hasLayer(window.capaEstaciones[lid])) window.capaEstaciones[lid].addTo(window.map);
     });
     return;
   }
@@ -530,13 +530,13 @@ function buscarHorario(){
   var lineasConResultados = {};
   trenes.forEach(function(t){ lineasConResultados[t.lid] = true; });
 
-  Object.keys(capaLineas).forEach(function(lid){
+  Object.keys(window.capaLineas).forEach(function(lid){
     if(lineasConResultados[lid]){
-      capaLineas[lid].setStyle({opacity:1, weight:6});
-      if(!map.hasLayer(capaEstaciones[lid])) capaEstaciones[lid].addTo(map);
+      window.capaLineas[lid].setStyle({opacity:1, weight:6});
+      if(!window.map.hasLayer(window.capaEstaciones[lid])) window.capaEstaciones[lid].addTo(window.map);
     } else {
-      capaLineas[lid].setStyle({opacity:0.12, weight:2});
-      if(map.hasLayer(capaEstaciones[lid])) map.removeLayer(capaEstaciones[lid]);
+      window.capaLineas[lid].setStyle({opacity:0.12, weight:2});
+      if(window.map.hasLayer(window.capaEstaciones[lid])) window.map.removeLayer(window.capaEstaciones[lid]);
     }
   });
 
