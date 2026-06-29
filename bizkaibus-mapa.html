@@ -44,6 +44,57 @@
   .popup-meta{font-size:12px;color:var(--gris);margin:2px 0;}
   .popup-retraso-tarde{color:var(--rojo-err);font-weight:600;}
   .popup-retraso-pronto{color:var(--verde-ok);font-weight:600;}
+
+  .btn-buscador{
+    position:absolute;top:16px;left:16px;z-index:500;
+    background:var(--tinta);color:var(--hueso);
+    border:1px solid var(--naranja);
+    padding:9px 16px;border-radius:8px;
+    font-size:13px;font-weight:700;
+    cursor:pointer;font-family:inherit;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+  }
+  .btn-buscador:hover{background:var(--naranja);color:var(--tinta);}
+
+  .panel-buscador{
+    position:absolute;top:60px;left:16px;z-index:500;
+    width:300px;max-width:calc(100vw - 32px);
+    background:rgba(28,27,26,0.97);color:var(--hueso);
+    border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);
+    padding:16px;
+    display:none;
+    max-height:calc(100% - 80px);
+    overflow-y:auto;
+  }
+  .panel-buscador.show{display:block;}
+  .panel-buscador h3{margin:0 0 12px;font-size:15px;color:var(--naranja);}
+  .campo-buscador{margin-bottom:12px;}
+  .campo-buscador label{
+    display:block;font-size:11px;color:#8a857d;
+    text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;
+  }
+  .campo-buscador select, .campo-buscador input{
+    width:100%;padding:8px 10px;border-radius:6px;
+    border:1px solid #3a3835;background:#2A2826;color:var(--hueso);
+    font-size:13px;font-family:inherit;
+  }
+  .btn-buscar-trayecto{
+    width:100%;background:var(--naranja);color:var(--tinta);
+    border:none;padding:10px;border-radius:8px;
+    font-weight:700;font-size:13px;cursor:pointer;margin-top:4px;
+  }
+  .btn-buscar-trayecto:hover{background:var(--naranja-osc);}
+  .resultados-trayecto{margin-top:16px;border-top:1px solid #3a3835;padding-top:12px;}
+  .resultado-linea{
+    background:#2A2826;border-radius:8px;padding:10px 12px;margin-bottom:8px;
+  }
+  .resultado-linea .cab{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;
+  }
+  .resultado-linea .cab b{color:var(--naranja);font-size:14px;}
+  .resultado-linea .salidas{font-size:12px;color:#C9C4BC;line-height:1.6;}
+  .resultados-vacio{font-size:12px;color:#8a857d;text-align:center;padding:10px 0;}
+
   .panel-itinerario{
     position:absolute;top:0;right:0;bottom:0;
     width:340px;max-width:90vw;
@@ -137,6 +188,25 @@
   </header>
   <main>
     <div id="map"></div>
+
+    <button type="button" class="btn-buscador" id="btnBuscador">🔍 Buscar trayecto</button>
+    <div class="panel-buscador" id="panelBuscador">
+      <h3>¿Qué autobús coger?</h3>
+      <div class="campo-buscador">
+        <label for="selectOrigen">Origen</label>
+        <select id="selectOrigen"><option value="">Selecciona parada…</option></select>
+      </div>
+      <div class="campo-buscador">
+        <label for="selectDestino">Destino</label>
+        <select id="selectDestino"><option value="">Selecciona parada…</option></select>
+      </div>
+      <div class="campo-buscador">
+        <label for="inputFecha">Fecha</label>
+        <input type="date" id="inputFecha">
+      </div>
+      <button type="button" class="btn-buscar-trayecto" id="btnBuscarTrayecto">Buscar</button>
+      <div class="resultados-trayecto" id="resultadosTrayecto"></div>
+    </div>
     <div class="leyenda">
       <b id="contadorBuses">0 autobuses</b>
       <span id="ultimaActualizacion">esperando primera lectura…</span>
@@ -165,6 +235,14 @@
   var URL_FEED  = "https://bizkaibus.cuentasmurf7.workers.dev";
   var URL_RUTAS = "feeds/rutas_simple.json";
   var URL_ITINERARIOS = "feeds/itinerarios_lineas.json";
+  var URL_LISTA_PARADAS = "feeds/lista_paradas.json";
+  var URL_INDICE_PARADAS = "feeds/indice_paradas.json";
+  // Horarios simplificados por patrón semanal (no por fecha exacta, ver
+  // notas en cargarDatosBuscadorTrayecto): un único bloque por línea+
+  // dirección+categoría de día (laborable / sábado / domingo). No cubre
+  // todavía cambios de horario de verano ni festivos especiales — eso se
+  // añadirá en una iteración posterior.
+  var URL_HORARIOS_SEMANALES = "feeds/horarios_semanales.json";
   var CENTRO    = [43.2630, -2.9350];
 
   var map, capaBuses;
@@ -174,6 +252,9 @@
   var cacheVehiculos = [];
   var itinerariosCache = null;
   var direccionMostrada = '0'; // '0' o '1', qué pestaña de ida/vuelta está activa
+  var listaParadasCache = null;     // [[stop_id, nombre], ...]
+  var indiceParadasCache = null;    // stop_id -> [{linea, dir, idx}, ...]
+  var horariosSemanalesCache = null; // linea -> dir -> {laborable:[[...]], sabado:[[...]], domingo:[[...]]}
 
   // ------------------------------------------------------------------
   function init(){
@@ -201,10 +282,189 @@
     document.getElementById('intervalo').addEventListener('change', reiniciarTemporizador);
     document.getElementById('btnCerrarItinerario').addEventListener('click', ocultarPanelItinerario);
 
+    document.getElementById('btnBuscador').addEventListener('click', toggleBuscador);
+    document.getElementById('btnBuscarTrayecto').addEventListener('click', buscarTrayecto);
+
     cargarRutas();
     cargarItinerarios();
+    cargarDatosBuscadorTrayecto();
     cargar();
     reiniciarTemporizador();
+  }
+
+  // ------------------------------------------------------------------
+  // BUSCADOR DE TRAYECTO (origen + destino + fecha -> qué líneas coger)
+  //
+  // MODELO SIMPLIFICADO (primera versión, a mejorar más adelante):
+  // en vez de mirar el calendario exacto día a día, los horarios se agrupan
+  // en tres patrones según el día de la semana de la fecha elegida:
+  //   - "laborable": lunes a viernes
+  //   - "sabado"
+  //   - "domingo"
+  // Esto NO tiene en cuenta todavía festivos, vísperas de festivo, ni el
+  // cambio de horario de verano/invierno que sí existe en los datos
+  // oficiales — esos casos especiales se ignoran por ahora a propósito,
+  // mostrando siempre el horario típico de ese día de la semana.
+  // ------------------------------------------------------------------
+  function toggleBuscador(){
+    document.getElementById('panelBuscador').classList.toggle('show');
+  }
+
+  function cargarDatosBuscadorTrayecto(){
+    var inputFecha = document.getElementById('inputFecha');
+    var hoy = new Date();
+    inputFecha.value = hoy.toISOString().slice(0,10);
+
+    Promise.all([
+      fetch(URL_LISTA_PARADAS).then(function(r){ return r.json(); }),
+      fetch(URL_INDICE_PARADAS).then(function(r){ return r.json(); }),
+      fetch(URL_HORARIOS_SEMANALES).then(function(r){ return r.json(); })
+    ]).then(function(resultados){
+      listaParadasCache = resultados[0];
+      indiceParadasCache = resultados[1];
+      horariosSemanalesCache = resultados[2];
+      poblarDesplegablesParadas();
+    }).catch(function(err){
+      console.error('No se pudieron cargar los datos del buscador de trayecto:', err);
+    });
+  }
+
+  function poblarDesplegablesParadas(){
+    var selectOrigen = document.getElementById('selectOrigen');
+    var selectDestino = document.getElementById('selectDestino');
+    var fragmentoOrigen = document.createDocumentFragment();
+    var fragmentoDestino = document.createDocumentFragment();
+
+    listaParadasCache.forEach(function(par){
+      var stopId = par[0], nombre = par[1] || ('Parada ' + par[0]);
+      var opt1 = document.createElement('option');
+      opt1.value = stopId; opt1.textContent = nombre;
+      fragmentoOrigen.appendChild(opt1);
+
+      var opt2 = document.createElement('option');
+      opt2.value = stopId; opt2.textContent = nombre;
+      fragmentoDestino.appendChild(opt2);
+    });
+
+    selectOrigen.appendChild(fragmentoOrigen);
+    selectDestino.appendChild(fragmentoDestino);
+  }
+
+  // A partir de un valor "YYYY-MM-DD" (input type=date), devuelve la
+  // categoría de día: 'laborable', 'sabado' o 'domingo'.
+  function categoriaDeFecha(valorInputFecha){
+    // New Date('YYYY-MM-DD') se interpreta en UTC; para evitar que un
+    // desfase horario cambie el día mostrado, construimos la fecha con
+    // los componentes por separado (hora local 12:00 de margen seguro).
+    var partes = valorInputFecha.split('-').map(Number);
+    var fecha = new Date(partes[0], partes[1]-1, partes[2], 12, 0, 0);
+    var diaSemana = fecha.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+    if(diaSemana === 0) return 'domingo';
+    if(diaSemana === 6) return 'sabado';
+    return 'laborable';
+  }
+
+  function buscarTrayecto(){
+    var origenId = document.getElementById('selectOrigen').value;
+    var destinoId = document.getElementById('selectDestino').value;
+    var valorFecha = document.getElementById('inputFecha').value;
+    var contenedorResultados = document.getElementById('resultadosTrayecto');
+
+    if(!origenId || !destinoId){
+      contenedorResultados.innerHTML = '<p class="resultados-vacio">Elige una parada de origen y otra de destino.</p>';
+      return;
+    }
+    if(origenId === destinoId){
+      contenedorResultados.innerHTML = '<p class="resultados-vacio">El origen y el destino no pueden ser la misma parada.</p>';
+      return;
+    }
+    if(!valorFecha){
+      contenedorResultados.innerHTML = '<p class="resultados-vacio">Elige una fecha.</p>';
+      return;
+    }
+
+    var categoria = categoriaDeFecha(valorFecha);
+
+    // 1. ¿Qué línea+dirección tienen tanto el origen como el destino, con el
+    //    origen en una posición ANTERIOR al destino dentro del recorrido?
+    var entradasOrigen = indiceParadasCache[origenId] || [];
+    var entradasDestino = indiceParadasCache[destinoId] || [];
+
+    var candidatas = []; // {linea, dir, idxOrigen, idxDestino}
+    entradasOrigen.forEach(function(eo){
+      entradasDestino.forEach(function(ed){
+        if(eo.linea === ed.linea && eo.dir === ed.dir && eo.idx < ed.idx){
+          candidatas.push({ linea: eo.linea, dir: eo.dir, idxOrigen: eo.idx, idxDestino: ed.idx });
+        }
+      });
+    });
+
+    if(!candidatas.length){
+      contenedorResultados.innerHTML = '<p class="resultados-vacio">No se ha encontrado ninguna línea directa entre esas dos paradas.</p>';
+      return;
+    }
+
+    // 2. Para cada línea+dirección candidata, leer sus salidas de la
+    //    categoría de día correspondiente (ya están todas cargadas en
+    //    memoria, sin necesidad de ninguna petición adicional).
+    var resultadosPorLinea = candidatas.map(function(c){
+      var bloqueLinea = horariosSemanalesCache[c.linea];
+      var bloqueDir = bloqueLinea && bloqueLinea[c.dir];
+      var salidas = (bloqueDir && bloqueDir[categoria]) || [];
+
+      var salidasValidas = [];
+      var vistos = {}; // dedup por "minOrigen-minDestino": distintos service_id
+                        // del mismo bloque (laborable/sábado/domingo) pueden
+                        // coincidir en horario en este tramo concreto aunque
+                        // difieran en otras paradas del recorrido.
+      salidas.forEach(function(horasPorIndice){
+        var minOrigen = horasPorIndice[c.idxOrigen];
+        var minDestino = horasPorIndice[c.idxDestino];
+        if(minOrigen === undefined || minOrigen === -1) return;
+        if(minDestino === undefined || minDestino === -1) return;
+        var clave = minOrigen + '-' + minDestino;
+        if(vistos[clave]) return;
+        vistos[clave] = true;
+        salidasValidas.push({ minOrigen: minOrigen, minDestino: minDestino });
+      });
+
+      salidasValidas.sort(function(a,b){ return a.minOrigen - b.minOrigen; });
+
+      return { linea: c.linea, direccion: c.dir, salidas: salidasValidas };
+    }).filter(function(r){ return r.salidas.length > 0; });
+
+    pintarResultadosTrayecto(resultadosPorLinea, categoria);
+  }
+
+  function minutosAHora(min){
+    // GTFS permite minutos >= 1440 (servicio que cruza medianoche); lo
+    // mostramos tal cual, con la hora "extendida" (ej. 25:10) para que no
+    // confunda con el día siguiente sin avisar.
+    var h = Math.floor(min/60), m = min%60;
+    return (h<10?'0':'')+h + ':' + (m<10?'0':'')+m;
+  }
+
+  function pintarResultadosTrayecto(resultados, categoria){
+    var contenedor = document.getElementById('resultadosTrayecto');
+    var etiquetaCategoria = {laborable:'laborable (L-V)', sabado:'sábado', domingo:'domingo'}[categoria] || categoria;
+
+    if(!resultados.length){
+      contenedor.innerHTML = '<p class="resultados-vacio">Ninguna línea directa tiene horario ' + esc(etiquetaCategoria) + ' entre esas paradas.</p>';
+      return;
+    }
+    var aviso = '<p style="font-size:11px;color:#8a857d;margin:0 0 10px;">Horario típico de ' + esc(etiquetaCategoria) +
+      '. Aún no se tienen en cuenta festivos ni el horario especial de verano.</p>';
+    contenedor.innerHTML = aviso + resultados.map(function(r){
+      var listaSalidas = r.salidas.slice(0, 8).map(function(s){
+        return minutosAHora(s.minOrigen) + ' → ' + minutosAHora(s.minDestino);
+      }).join(' &nbsp;·&nbsp; ');
+      var extra = r.salidas.length > 8 ? ' …' : '';
+      return '<div class="resultado-linea">' +
+        '<div class="cab"><b>Línea ' + esc(r.linea) + '</b><span style="font-size:11px;color:#8a857d;">' +
+          (r.direccion === '0' ? 'Ida' : 'Vuelta') + '</span></div>' +
+        '<div class="salidas">' + listaSalidas + esc(extra) + '</div>' +
+      '</div>';
+    }).join('');
   }
 
   // ------------------------------------------------------------------
