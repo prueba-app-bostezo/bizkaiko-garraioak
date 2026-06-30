@@ -16,6 +16,15 @@
   html,body{margin:0;height:100%;font-family:'Helvetica Neue',Arial,sans-serif;background:var(--hueso);color:var(--tinta);}
   #app{display:flex;flex-direction:column;height:100%;}
   header{display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--tinta);color:var(--hueso);border-bottom:4px solid var(--naranja);flex-wrap:wrap;}
+  .btn-volver{
+    display:flex;align-items:center;justify-content:center;
+    width:34px;height:34px;flex-shrink:0;
+    border:1px solid #3a3835;border-radius:8px;
+    color:var(--hueso);text-decoration:none;
+    font-size:18px;line-height:1;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .btn-volver:hover{background:#2A2826;border-color:var(--naranja);}
   .brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;}
   .brand .mark{font-weight:800;font-size:20px;letter-spacing:.5px;color:var(--naranja);}
   .brand .sub{font-size:12px;color:#C9C4BC;font-weight:400;}
@@ -46,7 +55,7 @@
   .popup-retraso-pronto{color:var(--verde-ok);font-weight:600;}
 
   .btn-buscador{
-    position:absolute;top:16px;left:16px;z-index:500;
+    position:absolute;top:16px;left:62px;z-index:500;
     background:var(--tinta);color:var(--hueso);
     border:1px solid var(--naranja);
     padding:9px 16px;border-radius:8px;
@@ -57,8 +66,8 @@
   .btn-buscador:hover{background:var(--naranja);color:var(--tinta);}
 
   .panel-buscador{
-    position:absolute;top:60px;left:16px;z-index:500;
-    width:300px;max-width:calc(100vw - 32px);
+    position:absolute;top:60px;left:62px;z-index:500;
+    width:300px;max-width:calc(100vw - 78px);
     background:rgba(28,27,26,0.97);color:var(--hueso);
     border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.35);
     padding:16px;
@@ -167,6 +176,7 @@
 <body>
 <div id="app">
   <header>
+    <a class="btn-volver" href="index.html" title="Volver al inicio">←</a>
     <div class="brand">
       <span class="mark">BIZKAIBUS</span>
       <span class="sub">posición de autobuses en directo</span>
