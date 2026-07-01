@@ -297,6 +297,8 @@
     document.getElementById('filtroLinea').addEventListener('input', function(){
       pintarDesdeCache();
       actualizarPanelItinerario();
+      // Si el filtro se vacía, ocultar las paradas
+      if(!this.value.trim()) ocultarParadas();
     });
     document.getElementById('intervalo').addEventListener('change', reiniciarTemporizador);
     document.getElementById('btnCerrarItinerario').addEventListener('click', ocultarPanelItinerario);
@@ -307,6 +309,7 @@
     cargarRutas();
     cargarItinerarios();
     cargarDatosBuscadorTrayecto();
+    cargarYPintarParadas();
     cargar();
     reiniciarTemporizador();
   }
@@ -730,6 +733,7 @@
       btn.addEventListener('click', function(){
         direccionMostrada = dir;
         mostrarPanelItinerario(linea, datosLinea);
+        mostrarParadasDeLinea(linea, dir); // actualizar paradas al cambiar ida/vuelta
       });
       tabs.appendChild(btn);
     });
@@ -748,10 +752,12 @@
     }
 
     document.getElementById('panelItinerario').classList.add('show');
+    mostrarParadasDeLinea(linea, direccionMostrada); // mostrar paradas al abrir el panel
   }
 
   function ocultarPanelItinerario(){
     document.getElementById('panelItinerario').classList.remove('show');
+    ocultarParadas(); // ocultar paradas al cerrar el panel
   }
 
   // ------------------------------------------------------------------
@@ -900,20 +906,92 @@
   function iconoBus(linea, bearing){
     var rot = typeof bearing==='number' ? bearing : 0;
     var num = (linea||'').replace(/^A/,'');
+    // Icono de autobús reducido a 28px con símbolo de bus en SVG
     return L.divIcon({
       className:'',
       html:
-        '<div style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">' +
-          '<svg width="34" height="34" viewBox="0 0 34 34" style="transform:rotate('+rot+'deg);position:absolute;top:0;left:0;">' +
-            '<circle cx="17" cy="17" r="15" fill="#E84E1B" stroke="#1C1B1A" stroke-width="2"/>' +
-            '<polygon points="17,4 22,12 12,12" fill="#1C1B1A"/>' +
+        '<div style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">' +
+          '<svg width="28" height="28" viewBox="0 0 28 28" style="transform:rotate('+rot+'deg);position:absolute;top:0;left:0;">' +
+            '<circle cx="14" cy="14" r="13" fill="#E84E1B" stroke="#1C1B1A" stroke-width="1.5"/>' +
+            // Icono de autobús simplificado: carrocería + ruedas
+            '<rect x="7" y="9" width="14" height="9" rx="2" fill="#F6F2EA"/>' +
+            '<rect x="8" y="10" width="5" height="4" rx="1" fill="#E84E1B"/>' +
+            '<rect x="15" y="10" width="5" height="4" rx="1" fill="#E84E1B"/>' +
+            '<circle cx="10" cy="18.5" r="1.5" fill="#1C1B1A"/>' +
+            '<circle cx="18" cy="18.5" r="1.5" fill="#1C1B1A"/>' +
           '</svg>' +
-          '<span style="position:relative;z-index:1;font-size:9px;font-weight:800;color:#F6F2EA;pointer-events:none;line-height:1;">'+num+'</span>'+
+          '<span style="position:relative;z-index:1;font-size:8px;font-weight:800;color:#1C1B1A;pointer-events:none;line-height:1;margin-top:6px;">'+num+'</span>'+
         '</div>',
-      iconSize:[34,34],
-      iconAnchor:[17,17],
-      popupAnchor:[0,-17]
+      iconSize:[28,28],
+      iconAnchor:[14,14],
+      popupAnchor:[0,-14]
     });
+  }
+
+  function iconoParada(){
+    // Icono de parada: pequeño poste con panel, 18px
+    return L.divIcon({
+      className:'',
+      html:
+        '<svg width="18" height="22" viewBox="0 0 18 22" xmlns="http://www.w3.org/2000/svg">' +
+          // Panel de parada
+          '<rect x="1" y="1" width="16" height="11" rx="2" fill="#1C4A8A" stroke="#F6F2EA" stroke-width="1"/>' +
+          // Letra B de Bus en el panel
+          '<text x="9" y="10" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#F6F2EA" text-anchor="middle">B</text>' +
+          // Poste
+          '<line x1="9" y1="12" x2="9" y2="22" stroke="#1C1B1A" stroke-width="2"/>' +
+        '</svg>',
+      iconSize:[18,22],
+      iconAnchor:[9,22],
+      popupAnchor:[0,-22]
+    });
+  }
+
+  var capaParadas = L.layerGroup(); // siempre existe, empieza vacía y oculta (no añadida al mapa)
+  var paradasCache = null;          // [[stop_id, nombre, lat, lon], ...]
+
+  function cargarYPintarParadas(){
+    // Solo cargamos los datos en memoria; no pintamos nada todavía.
+    // Las paradas se mostrarán únicamente cuando el usuario seleccione
+    // una línea concreta (filtro de texto o clic en un autobús).
+    fetch('feeds/stops_data.json')
+      .then(function(r){ return r.json(); })
+      .then(function(paradas){ paradasCache = paradas; })
+      .catch(function(err){ console.warn('No se pudieron cargar las paradas:', err); });
+  }
+
+  function mostrarParadasDeLinea(linea, dir){
+    capaParadas.clearLayers();
+    if(!paradasCache || !itinerariosCache) return;
+
+    // Obtener la secuencia de paradas del itinerario de referencia para
+    // esta línea+dirección. Si la dirección exacta no existe, intentamos
+    // con la otra (por si se llama sin dirección conocida).
+    var datosLinea = itinerariosCache[linea] || itinerariosCache['A'+linea] || itinerariosCache[linea.replace(/^A/,'')];
+    if(!datosLinea) return;
+    var secuencia = datosLinea[dir] || datosLinea['0'] || datosLinea['1'];
+    if(!secuencia || !secuencia.length) return;
+
+    // Construir un set de stop_id que pertenecen a esta secuencia, para
+    // filtrar paradasCache rápidamente sin iterar todo por cada parada.
+    var idsEnSecuencia = {};
+    secuencia.forEach(function(p){ idsEnSecuencia[p.id] = p; });
+
+    var icono = iconoParada();
+    paradasCache.forEach(function(p){
+      var sid=p[0], nombre=p[1], lat=p[2], lon=p[3];
+      if(!idsEnSecuencia[sid]) return; // no pertenece a esta línea+dirección
+      var m = L.marker([lat, lon], {icon: icono, zIndexOffset: -1000});
+      m.bindPopup('<b style="font-size:13px;">'+esc(nombre)+'</b><br><span style="font-size:11px;color:#6B6660;">Parada '+esc(sid)+'</span>');
+      capaParadas.addLayer(m);
+    });
+
+    if(!map.hasLayer(capaParadas)) capaParadas.addTo(map);
+  }
+
+  function ocultarParadas(){
+    if(map.hasLayer(capaParadas)) map.removeLayer(capaParadas);
+    capaParadas.clearLayers();
   }
 
   function pintarDesdeCache(){
@@ -930,6 +1008,7 @@
       marker.on('click', function(e){
         e.originalEvent._marcadorClick = true;
         mostrarRuta(v.linea);
+        mostrarParadasDeLinea(v.linea, direccionMostrada);
         document.getElementById('filtroLinea').value = v.linea;
         actualizarPanelItinerario();
       });
