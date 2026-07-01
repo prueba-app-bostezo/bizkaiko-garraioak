@@ -1,102 +1,108 @@
-# Bizkaibus en directo — mapa de posición de autobuses
+# Bizkaiko Garraioak — Transporte de Bizkaia en directo
 
-Esta carpeta es un repositorio completo listo para subir a GitHub. Una vez
-publicado, tendrás una web propia (gratis, en `https://TU-USUARIO.github.io/TU-REPO/`)
-que muestra los autobuses de Bizkaibus en tiempo real sobre un mapa,
-sin depender de ningún proxy externo ni de cuentas de terceros.
+Portal web que reúne en un único sitio información sobre las redes de
+transporte público de Bizkaia (posición de vehículos en tiempo real cuando
+está disponible, líneas, paradas, horarios y buscador de itinerarios).
 
-## Por qué este enfoque
+🔗 Sitio en producción: **https://bizkaidev.github.io/bizkaiko-garraioak/**
 
-El feed oficial de Bizkaibus (formato SIRI, publicado por el Consorcio de
-Transportes de Bizkaia) no envía cabeceras CORS, así que un navegador no
-puede leerlo directamente desde una página en otro dominio. La solución más
-estable es que un proceso de servidor (no un navegador) descargue el XML
-periódicamente y lo publique como archivo estático junto a la propia app:
-al estar ambos en el mismo dominio, CORS deja de ser un problema.
+> ⚠️ Este proyecto **no está afiliado a ninguna institución** (Consorcio de
+> Transportes de Bizkaia, Diputación, Euskotren, etc.). Toda la información
+> se obtiene de fuentes públicas oficiales y se reprocesa aquí para
+> ofrecer una vista unificada. Más detalle en la página [FAQ](faq.html).
 
-Aquí ese "proceso de servidor" es una GitHub Action gratuita que se ejecuta
-cada 2 minutos.
+## Qué ofrece cada página
 
-## Pasos para desplegarlo
+| Página | Red | Estado | Qué hace |
+|---|---|---|---|
+| `index.html` | — | — | Portal de entrada con una tarjeta por red y su estado actual |
+| `bizkaibus-mapa.html` | Bizkaibus (interurbano) | 🟢 En directo | Mapa con la posición de los autobuses actualizada periódicamente, filtro por línea, panel de itinerario (paradas de ida/vuelta) y un buscador de trayecto por origen/destino/fecha que calcula rutas directas y con trasbordo a partir de los horarios precalculados |
+| `metro-mapa.html` | Metro Bilbao (L1/L2) | 🟢 En directo | Mapa con la posición de los trenes en tiempo real, filtro por línea |
+| `bilbobus-mapa.html` | Bilbobus (urbano) | 🟡 Construido, no enlazado aún | Mismo tipo de mapa en directo que Bizkaibus; ya funciona pero `index.html` todavía lo marca como "próximamente" y no lo enlaza desde el portal |
+| `euskotren-info.html` | Euskotren | 🔵 Solo información | Euskotren no publica la posición de sus trenes en ninguna fuente abierta, así que esta página muestra el trazado estático de las líneas de Bizkaia (E1, E3, E4, L2, L3 y el Tranvía) más un buscador de horarios aproximados por municipio y fecha |
+| `euskotren-horarios.html` | Euskotren | ⚪ Sin enlazar | Buscador de horarios de Euskotren independiente (versión previa a la integrada en `euskotren-info.html`); no está enlazado desde ninguna otra página actualmente |
+| `faq.html` | — | — | Preguntas frecuentes, disponible en castellano y euskera |
+| Renfe Cercanías | — | ⚪ Próximamente | Sin funcionalidad todavía; solo aparece como tarjeta "próximamente" en el portal |
 
-### 1. Crear el repositorio
-1. Entra en GitHub (ya tienes cuenta) y pulsa **New repository**.
-2. Ponle un nombre, por ejemplo `bizkaibus-mapa`. Puede ser público o privado
-   (con privado, GitHub Pages también funciona en el plan gratuito).
-3. Crea el repositorio vacío (sin README, sin .gitignore).
+## Cómo funciona (arquitectura actual)
 
-### 2. Subir estos archivos
-Sube el contenido completo de esta carpeta al repositorio, manteniendo la
-estructura de carpetas:
+Es un sitio estático (sin build ni framework): HTML, CSS y JavaScript planos,
+con [Leaflet](https://leafletjs.com/) y teselas de OpenStreetMap para los
+mapas.
 
-```
-tu-repo/
-├── .github/
-│   └── workflows/
-│       └── actualizar-feed.yml
-├── bizkaibus-mapa.html
-└── feeds/
-    └── .gitkeep
-```
+- **Datos en directo (Bizkaibus, Metro Bilbao, Bilbobus):** cada mapa hace
+  `fetch` desde el propio navegador, a intervalos configurables (10–60 s),
+  contra un *worker* de Cloudflare (`https://bizkaibus.cuentasmurf7.workers.dev`,
+  con el parámetro `?feed=metro` o `?feed=bilbobus` según la red) que actúa
+  de proxy de los feeds oficiales SIRI Vehicle Monitoring y añade las
+  cabeceras CORS que el feed original no envía. El sitio **ya no lee un
+  fichero estático propio** para pintar los vehículos en el mapa.
+- **Datos de referencia (líneas, paradas, horarios, itinerarios):** están
+  precalculados y versionados en el repo, en `feeds/*.json` y en
+  `horarios_verano.json`. Los usan el buscador de trayectos de Bizkaibus y
+  el buscador de horarios de Euskotren; no se descargan en tiempo real.
+- **`.github/workflows/sync-bizkaibus.yml`:** Action que se ejecuta cada
+  5 minutos (`cron: "*/5 * * * *"`), en cada `push` a `main` y también de
+  forma manual. Descarga los tres feeds SIRI oficiales de Bizkaibus
+  (posiciones, retrasos, alertas) en XML dentro de `feeds/`, y publica todo
+  el sitio en GitHub Pages con `actions/upload-pages-artifact` +
+  `actions/deploy-pages`. Estos XML quedan archivados junto al resto de
+  ficheros, pero **no son la fuente que leen los mapas en directo** (que
+  usan el worker de Cloudflare); sirven de copia/histórico bruto del feed.
+- **Sin backend propio ni base de datos:** todo el procesado de rutas,
+  trasbordos y horarios ocurre en el navegador con los JSON estáticos.
 
-La forma más sencilla si no usas git desde la terminal: en la página del
-repo en GitHub, usa **Add file → Upload files**, arrastra todos los archivos
-y carpetas, y confirma el commit. GitHub respeta la estructura de carpetas
-al arrastrar.
-
-### 3. Activar GitHub Pages
-1. En el repositorio, ve a **Settings → Pages**.
-2. En "Build and deployment", en el campo **Source**, elige **GitHub Actions**
-   (no "Deploy from a branch").
-3. Guarda. No hace falta nada más aquí; el propio workflow se encarga de
-   publicar.
-
-### 4. Lanzar la primera ejecución
-1. Ve a la pestaña **Actions** del repositorio.
-2. Si no se ha lanzado sola al subir los archivos, verás el workflow
-   "Actualizar feed Bizkaibus" en la lista. Pulsa sobre él y luego en
-   **Run workflow** (botón a la derecha) para forzar la primera ejecución.
-3. Espera a que el job termine (ícono verde ✓, tarda menos de un minuto).
-
-### 5. Abrir tu web
-Tu mapa estará disponible en:
+## Estructura del repositorio
 
 ```
-https://TU-USUARIO.github.io/TU-REPO/
+bizkaiko-garraioak/
+├── .github/workflows/sync-bizkaibus.yml   # cron cada 5 min: archiva feeds SIRI + publica Pages
+├── index.html                             # portal principal
+├── bizkaibus-mapa.html                    # mapa en directo + buscador de trayecto
+├── metro-mapa.html                        # mapa en directo Metro Bilbao
+├── bilbobus-mapa.html                     # mapa en directo Bilbobus (sin enlazar en el portal)
+├── euskotren-info.html                    # trazado estático + buscador de horarios
+├── euskotren-horarios.html                # buscador de horarios independiente (legacy)
+├── faq.html                               # FAQ en castellano y euskera
+├── horarios_verano.json                   # horarios usados por euskotren-horarios.html
+├── feeds/
+│   ├── horarios_semanales.json            # horarios de Bizkaibus por línea/día
+│   ├── itinerarios_lineas.json            # trazado e itinerario de cada línea de Bizkaibus
+│   ├── indice_paradas.json                # índice de paradas
+│   ├── lista_paradas.json                 # listado de paradas
+│   ├── parada_municipio.json              # relación parada → municipio
+│   ├── stops_data.json                    # datos de paradas
+│   ├── bizkaibus-vehicle-positions.xml    # archivado por el workflow (histórico)
+│   ├── bizkaibus-trip-updates.xml         # archivado por el workflow (histórico)
+│   └── bizkaibus-service-alerts.xml       # archivado por el workflow (histórico)
+└── img/fondo-portada.jpg
 ```
 
-Sustituye `TU-USUARIO` por tu nombre de usuario de GitHub y `TU-REPO` por el
-nombre que le hayas puesto al repositorio. GitHub también te muestra esta URL
-exacta en Settings → Pages una vez activado.
+## Desarrollo local
 
-## Cómo se mantiene actualizado
+No hay dependencias ni paso de build: basta con servir la carpeta como
+archivos estáticos, por ejemplo:
 
-El workflow (`.github/workflows/actualizar-feed.yml`) está programado para
-ejecutarse automáticamente cada 2 minutos (`cron: "*/2 * * * *"`). Cada vez
-que corre:
-1. Descarga los tres feeds XML de Bizkaibus (posiciones, retrasos, alertas).
-2. Los guarda en la carpeta `feeds/`.
-3. Vuelve a publicar todo el sitio en GitHub Pages.
+```bash
+python3 -m http.server 8000
+# abrir http://localhost:8000
+```
 
-No necesitas hacer nada manualmente después del despliegue inicial.
+Ten en cuenta que los mapas en directo necesitan poder llegar al worker de
+Cloudflare (`bizkaibus.cuentasmurf7.workers.dev`) desde tu navegador para
+mostrar vehículos.
 
-**Nota sobre la frecuencia real:** GitHub Actions con triggers `schedule` en
-el plan gratuito no garantiza que el cron se dispare exactamente cada 2
-minutos — en periodos de mucha carga en GitHub puede retrasarse algunos
-minutos. Para este caso de uso (posición de autobuses) un margen de uno o
-dos minutos no debería notarse demasiado, pero si necesitas algo más
-puntual, esa es una limitación a tener en cuenta.
+## Publicación (GitHub Pages)
 
-## Si quieres cambiar algo
+El despliegue lo gestiona por completo el workflow
+`.github/workflows/sync-bizkaibus.yml`: en **Settings → Pages**, el *Source*
+debe estar configurado como **GitHub Actions** (no "Deploy from a branch").
+Cada ejecución programada, cada `push` a `main` o cada disparo manual desde
+la pestaña **Actions** vuelve a publicar el sitio completo.
 
-- **Frecuencia de actualización**: cambia el valor de `cron` en
-  `actualizar-feed.yml`. Por ejemplo `*/5 * * * *` para cada 5 minutos
-  (recomendable si quieres ir sobre seguro con los límites de minutos
-  gratuitos de Actions, aunque para un repo personal no debería ser problema).
-- **Frecuencia de refresco en el navegador**: el propio mapa tiene un
-  desplegable para elegir cada cuántos segundos vuelve a leer el archivo
-  ya publicado (esto no descarga nada de Bizkaia, solo relee tu copia).
-- **Volver al feed directo de Bizkaia** (sin pasar por tu copia): dentro de
-  `bizkaibus-mapa.html`, busca la constante `URL_FEED` y sustitúyela por la
-  URL original que aparece comentada justo encima. Ten en cuenta que esto
-  reintroduce el problema de CORS que motivó esta solución.
+## Aviso legal
+
+Según se indica en la propia web ([FAQ](faq.html)): el proyecto no tiene
+ánimo de lucro ni monetización, no sustituye a las fuentes oficiales y toda
+la información se obtiene de canales públicos de las instituciones
+vizcaínas. No se declara ninguna licencia de código en el repositorio.
